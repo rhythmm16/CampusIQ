@@ -1,3 +1,4 @@
+import 'react-native-get-random-values';
 import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -13,11 +14,27 @@ import {
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import { COLORS } from '@/constants/colors';
+import { ErrorBoundary } from '@/components/ui';
+import { useOffline, useProactiveNudges } from '@/hooks';
+import { useUserStore } from '@/store';
+import { setAppLanguage } from '@/i18n';
+import { refreshWeather } from '@/services/weather';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   useFrameworkReady();
+  useOffline();
+  useProactiveNudges();
+
+  useEffect(() => {
+    refreshWeather();
+  }, []);
+
+  const language = useUserStore((state) => state.language);
+  useEffect(() => {
+    setAppLanguage(language);
+  }, [language]);
 
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
@@ -37,28 +54,32 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaProvider>
-      <StatusBar style="dark" backgroundColor={COLORS.card} />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="building/[id]"
-          options={{
-            headerShown: true,
-            headerTitle: '',
-            headerBackTitle: 'Back',
-            headerTintColor: COLORS.primary,
-            headerStyle: { backgroundColor: COLORS.card },
-          }}
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <StatusBar style="dark" backgroundColor={COLORS.card} />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="building/[id]"
+            options={{
+              headerShown: true,
+              headerTitle: '',
+              headerBackTitle: 'Back',
+              headerTintColor: COLORS.primary,
+              headerStyle: { backgroundColor: COLORS.card },
+            }}
+          />
+          <Stack.Screen name="scan" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="snap" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="emergency" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+        <Toast
+          position="top"
+          topOffset={50}
+          visibilityTime={2000}
         />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <Toast
-        position="top"
-        topOffset={50}
-        visibilityTime={2000}
-      />
-    </SafeAreaProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }

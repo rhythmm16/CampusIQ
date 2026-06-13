@@ -1,11 +1,13 @@
 import { Tabs } from 'expo-router';
 import { MessageCircle, Map, Building2, User } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { COLORS, FONT_SIZE } from '@/constants/colors';
 import { Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useChatStore } from '@/store';
 
 export default function TabLayout() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { messages } = useChatStore();
   const hasNewMessage = messages.length > 0 && messages[messages.length - 1].role === 'assistant';
@@ -34,7 +36,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Chat',
+          title: t('tabs.chat'),
           tabBarIcon: ({ color, size }) => (
             <View>
               <MessageCircle size={size} color={color} />
@@ -46,21 +48,21 @@ export default function TabLayout() {
       <Tabs.Screen
         name="map"
         options={{
-          title: 'Map',
+          title: t('tabs.map'),
           tabBarIcon: ({ color, size }) => <Map size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="buildings"
         options={{
-          title: 'Buildings',
+          title: t('tabs.buildings'),
           tabBarIcon: ({ color, size }) => <Building2 size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: t('tabs.profile'),
           tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
         }}
       />
