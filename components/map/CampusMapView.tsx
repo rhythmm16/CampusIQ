@@ -1,21 +1,13 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { StyleSheet, View, TouchableOpacity, Text, Platform, Animated as RNAnimated } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import { StyleSheet, View, TouchableOpacity, Text, Platform } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
-import Animated, { FadeIn, FadeInDown, useAnimatedStyle, useSharedValue, withTiming, withSpring } from 'react-native-reanimated';
 import { Building } from '@/types';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants/colors';
 import { useMapStore } from '@/store';
 import * as Haptics from 'expo-haptics';
-import { X, MapPin, Navigation } from 'lucide-react-native';
-import { BUILDINGS } from '@/constants/campus';
-
-// Chitkara University Main Gate location with proper zoom level
-const MAIN_GATE_REGION = {
-  latitude: 30.5135,
-  longitude: 76.6575,
-  latitudeDelta: 0.005,
-  longitudeDelta: 0.005,
-};
+import { X, Navigation } from 'lucide-react-native';
+import { BUILDINGS, INITIAL_MAP_REGION } from '@/constants/campus';
+import Toast from 'react-native-toast-message';
 
 interface CampusMapViewProps {
   onBuildingPress?: (building: Building) => void;
@@ -25,16 +17,37 @@ interface CampusMapViewProps {
 export function CampusMapView({ onBuildingPress, showControls = true }: CampusMapViewProps) {
   const mapRef = useRef<MapView>(null);
   const { activeRoute, highlightedBuildingId, clearRoute, currentLocationId, setCurrentLocation } = useMapStore();
-  const [routeAnimated, setRouteAnimated] = useState(false);
-  const [isMapReady, setIsMapReady] = useState(false);
-  
-  // Animation for route card
-  const routeScale = useSharedValue(0);
-  const routeOpacity = useSharedValue(0);
 
-  // Set current location to main gate on mount
+  // Set Main Gate as default location and show toast on mount
   useEffect(() => {
-    setCurrentLocation('main_gate');
+    const mainGate = BUILDINGS.find(b => b.building_id === 'main_gate');
+    if (mainGate && !currentLocationId) {
+      setCurrentLocation('main_gate');
+      
+      // Show toast notification
+      setTimeout(() => {
+        Toast.show({
+          type: 'success',
+          text1: 'You are at Main Gate',
+          text2: 'Welcome to Chitkara University',
+          position: 'top',
+          visibilityTime: 3000,
+          topOffset: 60,
+        });
+      }, 500);
+      
+      // Focus on Main Gate with proper zoom after map loads
+      if (mapRef.current) {
+        setTimeout(() => {
+          mapRef.current?.animateToRegion({
+            latitude: mainGate.coordinates.lat,
+            longitude: mainGate.coordinates.lng,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          }, 1000);
+        }, 1000);
+      }
+    }
   }, []);
 
   const handleBuildingPress = (building: Building) => {
@@ -44,16 +57,12 @@ export function CampusMapView({ onBuildingPress, showControls = true }: CampusMa
 
   const handleClearRoute = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setRouteAnimated(false);
-    routeScale.value = withTiming(0, { duration: 200 });
-    routeOpacity.value = withTiming(0, { duration: 200 });
     clearRoute();
   };
 
   const handleRecenterMap = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (activeRoute && mapRef.current && isMapReady) {
-      // Fit map to show the entire route
+    if (activeRoute && mapRef.current) {
       const coordinates = [
         activeRoute.from_building.coordinates,
         ...activeRoute.waypoints,
@@ -67,41 +76,18 @@ export function CampusMapView({ onBuildingPress, showControls = true }: CampusMa
         edgePadding: { top: 100, right: 50, bottom: 250, left: 50 },
         animated: true,
       });
-    } else if (mapRef.current && isMapReady) {
-      mapRef.current.animateToRegion(MAIN_GATE_REGION, 1000);
+    } else if (mapRef.current) {
+      mapRef.current.animateToRegion(INITIAL_MAP_REGION, 1000);
     }
   };
 
-  // Auto-fit map when route changes with smooth animation
+  // Auto-fit map when route changes
   useEffect(() => {
-    if (activeRoute && mapRef.current && isMapReady && !routeAnimated) {
+    if (activeRoute && mapRef.current) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      
-      // Animate route card entrance with spring
-      routeOpacity.value = withTiming(1, { duration: 300 });
-      routeScale.value = withSpring(1, {
-        damping: 12,
-        stiffness: 100,
-      });
-      
-      setTimeout(() => {
-        handleRecenterMap();
-        setRouteAnimated(true);
-      }, 300);
-    }
-  }, [activeRoute, isMapReady]);
-
-  // Reset animation state when route is cleared
-  useEffect(() => {
-    if (!activeRoute) {
-      setRouteAnimated(false);
+      setTimeout(() => handleRecenterMap(), 400);
     }
   }, [activeRoute]);
-
-  const animatedRouteStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: routeScale.value }],
-    opacity: routeOpacity.value,
-  }));
 
   // Get route path coordinates
   const routeCoordinates = activeRoute
@@ -117,17 +103,9 @@ export function CampusMapView({ onBuildingPress, showControls = true }: CampusMa
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <Animated.View entering={FadeIn.duration(400)} style={styles.mapHeader}>
-        <MapPin size={20} color={COLORS.primary} />
-        <Text style={styles.headerTitle}>Campus Map</Text>
-      </Animated.View>
-
-      {/* Route Overview Card */}
-      {activeRoute && routeOpacity.value > 0 && (
-        <Animated.View 
-          style={[styles.routeOverview, animatedRouteStyle]}
-        >
+      {/* Route Overview Floating Card */}
+      {activeRoute && (
+        <View style={styles.routeOverview}>
           <View style={styles.routeHeader}>
             <View style={styles.routeEndpoint}>
               <View style={[styles.endpointDot, styles.startDot]} />
@@ -145,7 +123,7 @@ export function CampusMapView({ onBuildingPress, showControls = true }: CampusMa
               {activeRoute.total_walk_time_minutes} min • {activeRoute.total_distance_meters}m
             </Text>
           </View>
-        </Animated.View>
+        </View>
       )}
 
       {/* Map */}
@@ -153,17 +131,13 @@ export function CampusMapView({ onBuildingPress, showControls = true }: CampusMa
         ref={mapRef}
         style={styles.map}
         provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-        initialRegion={MAIN_GATE_REGION}
-        showsUserLocation={true}
+        initialRegion={INITIAL_MAP_REGION}
+        showsUserLocation={false}
         showsMyLocationButton={false}
-        showsCompass={true}
-        showsScale={true}
+        showsCompass={false}
+        showsScale={false}
         loadingEnabled={true}
-        onMapReady={() => setIsMapReady(true)}
-        pitchEnabled={false}
-        rotateEnabled={true}
-        scrollEnabled={true}
-        zoomEnabled={true}
+        mapType="standard"
       >
         {/* Building Markers */}
         {BUILDINGS.map((building) => {
@@ -187,8 +161,9 @@ export function CampusMapView({ onBuildingPress, showControls = true }: CampusMa
               onPress={() => handleBuildingPress(building)}
             >
               <View style={[
-                styles.markerContainer,
-                (isHighlighted || isOnRoute) && styles.markerHighlighted,
+                styles.marker,
+                isHighlighted && styles.markerHighlighted,
+                isOnRoute && styles.markerOnRoute,
                 isCurrent && styles.markerCurrent,
               ]}>
                 <Text style={styles.markerEmoji}>{building.marker_emoji}</Text>
@@ -202,17 +177,18 @@ export function CampusMapView({ onBuildingPress, showControls = true }: CampusMa
           <Polyline
             coordinates={routeCoordinates}
             strokeColor={COLORS.primary}
-            strokeWidth={4}
-            lineDashPattern={[1]}
+            strokeWidth={5}
+            lineJoin="round"
+            lineCap="round"
           />
         )}
       </MapView>
 
-      {/* Map Controls */}
+      {/* Floating Action Buttons */}
       {showControls && (
-        <View style={styles.controls}>
+        <View style={styles.floatingActions}>
           <TouchableOpacity
-            style={styles.controlButton}
+            style={styles.floatingButton}
             onPress={handleRecenterMap}
             accessibilityLabel="Recenter map"
           >
@@ -221,7 +197,7 @@ export function CampusMapView({ onBuildingPress, showControls = true }: CampusMa
 
           {activeRoute && (
             <TouchableOpacity
-              style={[styles.controlButton, styles.clearButton]}
+              style={[styles.floatingButton, styles.clearButton]}
               onPress={handleClearRoute}
               accessibilityLabel="Clear route"
             >
@@ -238,65 +214,37 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  mapHeader: {
-    position: 'absolute',
-    top: 16,
-    left: 16,
-    right: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    backdropFilter: 'blur(10px)',
-    borderRadius: BORDER_RADIUS.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
-    zIndex: 10,
-  },
-  headerTitle: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
   routeOverview: {
     position: 'absolute',
-    top: 80,
+    top: 20,
     left: 16,
     right: 16,
-    padding: SPACING.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.98)',
-    backdropFilter: 'blur(10px)',
-    borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 2.5,
-    borderColor: COLORS.primary,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 10,
-    zIndex: 10,
+    padding: SPACING.md,
+    backgroundColor: '#FFFFFF',
+    borderRadius: BORDER_RADIUS.xl,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
+    zIndex: 100,
   },
   routeHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACING.md,
-    marginBottom: SPACING.sm,
+    justifyContent: 'space-between',
+    marginBottom: SPACING.xs,
   },
   routeEndpoint: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.sm,
+    gap: SPACING.xs,
+    flex: 1,
   },
   endpointDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
   startDot: {
     backgroundColor: '#10B981',
@@ -305,88 +253,70 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.danger,
   },
   endpointText: {
-    fontSize: FONT_SIZE.base,
+    fontSize: FONT_SIZE.sm,
     fontWeight: '600',
     color: COLORS.textPrimary,
   },
   routeArrow: {
-    fontSize: FONT_SIZE.lg,
+    fontSize: FONT_SIZE.base,
     color: COLORS.textSecondary,
+    marginHorizontal: SPACING.xs,
   },
   routeStats: {
     alignItems: 'center',
   },
   routeStatText: {
-    fontSize: FONT_SIZE.base,
+    fontSize: FONT_SIZE.sm,
     fontWeight: '600',
     color: COLORS.primary,
   },
   map: {
     flex: 1,
   },
-  markerContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  marker: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2.5,
-    borderColor: COLORS.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-    overflow: 'hidden',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#94A3B8',
   },
   markerHighlighted: {
+    borderColor: COLORS.accent,
+    borderWidth: 3,
+  },
+  markerOnRoute: {
     borderColor: COLORS.primary,
-    borderWidth: 3.5,
-    transform: [{ scale: 1.15 }],
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    elevation: 8,
-    backgroundColor: '#FFFFFF',
+    borderWidth: 3,
   },
   markerCurrent: {
     borderColor: '#10B981',
-    borderWidth: 4,
-    backgroundColor: '#D1FAE5',
-    shadowColor: '#10B981',
-    shadowOpacity: 0.45,
-    shadowRadius: 8,
-    elevation: 10,
-    transform: [{ scale: 1.2 }],
+    borderWidth: 3,
+    backgroundColor: '#F0FDF4',
   },
   markerEmoji: {
-    fontSize: 20,
-    textAlign: 'center',
-    includeFontPadding: false,
-    textAlignVertical: 'center',
-    lineHeight: 24,
+    fontSize: 18,
   },
-  controls: {
+  floatingActions: {
     position: 'absolute',
     right: 16,
-    bottom: 32,
-    gap: 12,
+    bottom: 120,
+    gap: SPACING.sm,
   },
-  controlButton: {
+  floatingButton: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    backdropFilter: 'blur(10px)',
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
     shadowRadius: 10,
     elevation: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
   },
   clearButton: {
     backgroundColor: COLORS.primary,
