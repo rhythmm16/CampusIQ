@@ -56,14 +56,17 @@ export function useOffline() {
       setConnected(false);
     };
 
-    if (typeof window !== 'undefined') {
+    const supportsWindowEvents =
+      typeof window !== 'undefined' && typeof window.addEventListener === 'function';
+
+    if (supportsWindowEvents) {
       window.addEventListener('online', handleOnline);
       window.addEventListener('offline', handleOffline);
     }
 
     return () => {
       clearInterval(interval);
-      if (typeof window !== 'undefined') {
+      if (supportsWindowEvents) {
         window.removeEventListener('online', handleOnline);
         window.removeEventListener('offline', handleOffline);
       }
