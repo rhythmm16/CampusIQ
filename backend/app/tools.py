@@ -127,10 +127,67 @@ def get_pulse() -> dict[str, Any]:
 
 
 def get_weather_hint() -> dict[str, Any]:
-    return {
-        "hint": "Ask the app for weather-shielded routes when raining or very hot.",
-        "weather_shielded_available": True,
-    }
+    """Fetch real-time weather from Open-Meteo API (no API key needed)."""
+    try:
+        import httpx
+        from .data import all_buildings
+        
+        # Get campus center coordinates (use first building as fallback)
+        buildings = all_buildings()
+        if buildings:
+            lat = buildings[0]["coordinates"]["lat"]
+            lng = buildings[0]["coordinates"]["lng"]
+        else:
+            lat, lng = 17.4465, 78.3502  # Default campus center
+        
+        url = (
+            f"https://api.open-meteo.com/v1/forecast?"
+            f"latitude={lat}&longitude={lng}"
+            f"&current=temperature_2m,precipitation,weather_code"
+        )
+        
+        with httpx.Client(timeout=5.0) as client:
+            response = client.get(url)
+            data = response.json()
+        
+        temp = data.get("current", {}).get("temperature_2m", 28)
+        precip = data.get("current", {}).get("precipitation", 0)
+        code = data.get("current", {}).get("weather_code", 0)
+        
+        # Weather codes for rain: 51,53,55,61,63,65,80,81,82,95,96,99
+        rain_codes = [51, 53, 55, 61, 63, 65, 80, 81, 82, 95, 96, 99]
+        is_raining = precip > 0 or code in rain_codes
+        is_hot = temp >= 38
+        is_bad = is_raining or is_hot
+        
+        if is_raining:
+            hint = f"It's currently raining ({int(temp)}°C). I recommend weather-shielded routes with covered walkways."
+        elif is_hot:
+            hint = f"It's very hot ({int(temp)}°C). I recommend shaded or covered paths."
+        else:
+            hint = f"Weather is clear ({int(temp)}°C). All route options available."
+        
+        return {
+            "is_bad_weather": is_bad,
+            "is_raining": is_raining,
+            "is_hot": is_hot,
+            "temperature_c": int(temp),
+            "hint": hint,
+            "weather_shielded_available": True,
+            "recommend_covered_route": is_bad,
+        }
+    except Exception as e:
+        # Fallback if API fails
+        return {
+            "is_bad_weather": False,
+            "is_raining": False,
+            "is_hot": False,
+            "temperature_c": 28,
+            "hint": "Weather data unavailable. Weather-shielded routes available on request.",
+            "weather_shielded_available": True,
+            "recommend_covered_route": False,
+            "error": str(e),
+        }
 
 
 def get_safety_pois() -> dict[str, Any]:
