@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**Award-Winning Accessible Campus Navigation System**
+**Accessible Campus Navigation System**
 
 *AI-Powered · Accessibility-First · Multilingual · Offline-Ready*
 
@@ -21,7 +21,7 @@
 
 ## 🌟 Overview
 
-**CampusIQ** is a next-generation campus navigation assistant that uses conversational AI to help students, faculty, and visitors navigate campus facilities with **zero barriers**. Built for a hackathon, it demonstrates real-world accessibility innovation with production-ready architecture.
+**CampusIQ** is a next-generation campus navigation assistant that uses conversational AI to help students, faculty, and visitors navigate campus facilities with **zero barriers**.
 
 ### 🎯 Problem Statement
 
