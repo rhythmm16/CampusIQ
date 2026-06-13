@@ -1,12 +1,23 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Building, Event, RouteData } from '@/types';
+import { Building, Event, RouteData, AccessibilityProfile } from '@/types';
 import { BUILDINGS, SAMPLE_EVENTS } from '@/constants/campus';
+import { calculateRoute } from '@/services/routing';
+
+const DEFAULT_PROFILE: AccessibilityProfile = {
+  wheelchair: false,
+  visual_impairment: false,
+  hearing_impairment: false,
+  elevator_required: false,
+  avoid_stairs: false,
+  slow_walker: false,
+  sensory_friendly: false,
+};
 
 const KEYS = {
-  BUILDINGS: 'campusway:buildings',
-  EVENTS_TODAY: 'campusway:events_today',
-  POPULAR_ROUTES: 'campusway:popular_routes',
-  LAST_SYNC: 'campusway:last_sync',
+  BUILDINGS: 'campusiq:buildings',
+  EVENTS_TODAY: 'campusiq:events_today',
+  POPULAR_ROUTES: 'campusiq:popular_routes',
+  LAST_SYNC: 'campusiq:last_sync',
 };
 
 const POPULAR_ROUTES_QUERIES: Record<string, string> = {
@@ -82,36 +93,9 @@ export const offlineCache = {
     const popularDestinations = ['cafeteria', 'library', 'medical_center', 'parking_p1', 'cs_block'];
 
     for (const destId of popularDestinations) {
-      const from = BUILDINGS.find((b) => b.building_id === 'main_gate');
-      const to = BUILDINGS.find((b) => b.building_id === destId);
-
-      if (from && to) {
-        const distance = Math.round(
-          Math.sqrt(
-            Math.pow((to.coordinates.lat - from.coordinates.lat) * 111000, 2) +
-              Math.pow((to.coordinates.lng - from.coordinates.lng) * 111000, 2)
-          )
-        );
-
-        routes.push({
-          route_type: 'fastest',
-          from_building: from,
-          to_building: to,
-          steps: [`Start at ${from.name}`, `Head to ${to.name}`, `Arrive at ${to.name}`],
-          segments: [
-            {
-              from: from.building_id,
-              to: to.building_id,
-              distance_meters: distance,
-              walk_time_minutes: Math.round(distance / 80),
-              path_type: 'main_road',
-              is_accessible: true,
-            },
-          ],
-          waypoints: [from.coordinates, to.coordinates],
-          total_distance_meters: distance,
-          total_walk_time_minutes: Math.round(distance / 80),
-        });
+      const route = calculateRoute('main_gate', destId, 'fastest', DEFAULT_PROFILE);
+      if (route) {
+        routes.push(route);
       }
     }
 

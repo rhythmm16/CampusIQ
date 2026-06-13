@@ -1,8 +1,12 @@
-import { Building, ChatResponse, RouteData } from '@/types';
+import { Building, ChatResponse, RouteData, AccessibilityProfile } from '@/types';
 import { BUILDINGS } from '@/constants/campus';
+import { calculateRoute as computeRoute, RouteType } from '@/services/routing';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
-const USE_MOCK_API = true;
+const USE_MOCK_API = process.env.EXPO_PUBLIC_USE_MOCK_API !== 'false';
+
+export const isMockApi = USE_MOCK_API;
+export const apiBaseUrl = API_URL;
 
 interface CalculateRouteParams {
   from_id: string;
@@ -17,7 +21,7 @@ export const api = {
     sessionId: string,
     message: string,
     deviceId: string,
-    accessibilityProfile?: Record<string, boolean>
+    accessibilityProfile?: AccessibilityProfile
   ): Promise<ChatResponse> {
     if (USE_MOCK_API) {
       return this.mockChatResponse(message);
@@ -84,15 +88,44 @@ export const api = {
     return response.json();
   },
 
+  async snapLocate(imageBase64: string): Promise<{
+    building_id: string | null;
+    confidence: number;
+    reason?: string;
+  }> {
+    if (USE_MOCK_API) {
+      return {
+        building_id: null,
+        confidence: 0,
+        reason: 'Snap & Navigate requires the backend Vision endpoint.',
+      };
+    }
+
+    const response = await fetch(`${API_URL}/api/vision/locate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: imageBase64 }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to locate from image');
+    }
+    return response.json();
+  },
+
   async clearConversation(sessionId: string): Promise<void> {
     if (USE_MOCK_API) return;
 
     await fetch(`${API_URL}/api/chat/${sessionId}`, { method: 'DELETE' });
   },
 
-  async checkHealth(): Promise<{ status: string }> {
+  async checkHealth(): Promise<{
+    status: string;
+    llm?: boolean;
+    provider?: string;
+    model?: string;
+  }> {
     if (USE_MOCK_API) {
-      return { status: 'ok' };
+      return { status: 'ok', llm: false, provider: 'local' };
     }
 
     const response = await fetch(`${API_URL}/health`);
@@ -110,42 +143,26 @@ export const api = {
   },
 
   mockRouteResponse(params: CalculateRouteParams): RouteData {
-    const fromBuilding = BUILDINGS.find((b) => b.building_id === params.from_id);
-    const toBuilding = BUILDINGS.find((b) => b.building_id === params.to_id);
+    const profile: AccessibilityProfile = {
+      wheelchair: params.wheelchair ?? false,
+      avoid_stairs: params.avoid_stairs ?? false,
+      elevator_required: params.elevator_required ?? false,
+      slow_walker: false,
+      visual_impairment: false,
+      hearing_impairment: false,
+      sensory_friendly: false,
+    };
 
-    if (!fromBuilding || !toBuilding) {
-      throw new Error('Building not found');
+    const routeType: RouteType =
+      params.wheelchair || params.avoid_stairs || params.elevator_required
+        ? 'accessible'
+        : 'fastest';
+
+    const route = computeRoute(params.from_id, params.to_id, routeType, profile);
+    if (!route) {
+      throw new Error('No route found between the selected buildings');
     }
 
-    const distance = Math.round(
-      Math.sqrt(
-        Math.pow((toBuilding.coordinates.lat - fromBuilding.coordinates.lat) * 111000, 2) +
-          Math.pow((toBuilding.coordinates.lng - fromBuilding.coordinates.lng) * 111000, 2)
-      )
-    );
-
-    return {
-      route_type: params.wheelchair ? 'accessible' : 'fastest',
-      from_building: fromBuilding,
-      to_building: toBuilding,
-      steps: [
-        `Start at ${fromBuilding.name}`,
-        `Head towards ${toBuilding.name}`,
-        `Arrive at ${toBuilding.name}`,
-      ],
-      segments: [
-        {
-          from: params.from_id,
-          to: params.to_id,
-          distance_meters: distance,
-          walk_time_minutes: Math.round(distance / 80),
-          path_type: 'main_road',
-          is_accessible: true,
-        },
-      ],
-      waypoints: [fromBuilding.coordinates, toBuilding.coordinates],
-      total_distance_meters: distance,
-      total_walk_time_minutes: Math.round(distance / 80),
-    };
+    return route;
   },
 };
