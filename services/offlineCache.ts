@@ -21,14 +21,14 @@ const KEYS = {
 };
 
 const POPULAR_ROUTES_QUERIES: Record<string, string> = {
-  cafeteria: 'The Central Cafeteria is located near the center of campus. It\'s open from 7 AM to 10 PM serving breakfast, lunch, and dinner.',
-  library: 'The Main Library has 4 floors with elevator access. Open 8 AM - 8 PM weekdays. 24-hour study hall on ground floor.',
-  medical: 'The Medical Center is open 24/7 for emergencies. Located near the cafeteria. Pharmacy available.',
-  parking: 'Parking Lot P1 is at the main entrance. Open 24 hours with EV charging and accessible parking bays.',
-  hostel: 'Hostel A is wheelchair accessible with elevators. Hostel B has limited accessibility.',
-  sports: 'The Sports Complex includes gym, basketball court, and swimming pool. Open 6 AM - 9 PM daily.',
-  admin: 'The Administrative Block handles admissions, finance, and HR. Open 9 AM - 5 PM weekdays.',
-  cs: 'The Computer Science Block has labs and seminar halls. Elevator available for accessibility.',
+  cafeteria: 'The Student Cafeteria is located near the center of campus. Open from 7 AM to 10 PM serving breakfast, lunch, and dinner.',
+  library: 'The Learning Resource Centre (LRC) has 3 floors with extensive collection and study spaces. Open 9 AM - 9 PM.',
+  medical: 'The Health Center is open 24/7 for emergencies. Located on campus with pharmacy available.',
+  parking: 'Main Parking Area is at the main entrance. Open 24 hours with multiple parking zones.',
+  hostel: 'Boys Hostel and Girls Hostel are both available with modern amenities and Wi-Fi.',
+  sports: 'The Sports Complex includes gym, indoor courts, and swimming pool. Open 6 AM - 9 PM daily.',
+  admin: 'The Administrative Block handles admissions, finance, and registrar office. Open 9 AM - 5 PM weekdays.',
+  cs: 'De-Morgan Block is the Computer Science and Engineering department with labs and seminar halls. Elevator available for accessibility.',
 };
 
 export const offlineCache = {
@@ -90,7 +90,7 @@ export const offlineCache = {
   async preCachePopularRoutes(): Promise<void> {
     const routes: RouteData[] = [];
     // Pre-generate routes for common destinations
-    const popularDestinations = ['cafeteria', 'library', 'medical_center', 'parking_p1', 'cs_block'];
+    const popularDestinations = ['cafeteria', 'library', 'medical_center', 'parking_main', 'cs_block'];
 
     for (const destId of popularDestinations) {
       const route = calculateRoute('main_gate', destId, 'fastest', DEFAULT_PROFILE);

@@ -16,9 +16,9 @@ interface UseVoiceInputResult {
 }
 
 /**
- * Speech-to-text via the Web Speech API on web. On native (Expo Go) there is no
- * built-in STT, so `supported` is false and callers should fall back to typing
- * (or post audio to the backend Whisper endpoint in a dev build).
+ * Speech-to-text using Web Speech API (works on web only).
+ * For native mobile apps, this requires a custom development build with expo-speech-recognition.
+ * In Expo Go, the mic button is hidden on mobile.
  */
 export function useVoiceInput(
   onResult: (transcript: string) => void,
@@ -27,34 +27,44 @@ export function useVoiceInput(
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<any>(null);
 
-  const getRecognition = useCallback(() => {
+  // Web Speech Recognition (only works on web)
+  const getWebRecognition = useCallback(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return null;
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     return SpeechRecognition ? new SpeechRecognition() : null;
   }, []);
 
-  const supported = Platform.OS === 'web' && !!getRecognition();
+  // Only supported on web (Expo Go doesn't support native STT)
+  const supported = Platform.OS === 'web' && !!getWebRecognition();
 
   const start = useCallback(() => {
-    const recognition = getRecognition();
+    const recognition = getWebRecognition();
     if (!recognition) return;
 
     recognition.lang = LOCALE_MAP[language] ?? 'en-US';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
+    recognition.continuous = false;
 
     recognition.onresult = (event: any) => {
       const transcript = event.results?.[0]?.[0]?.transcript;
-      if (transcript) onResult(transcript);
+      if (transcript) {
+        onResult(transcript);
+      }
     };
+    
     recognition.onend = () => setListening(false);
-    recognition.onerror = () => setListening(false);
+    
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      setListening(false);
+    };
 
     recognitionRef.current = recognition;
     setListening(true);
     recognition.start();
-  }, [getRecognition, language, onResult]);
+  }, [getWebRecognition, language, onResult]);
 
   const stop = useCallback(() => {
     recognitionRef.current?.stop?.();
@@ -69,3 +79,4 @@ export function useVoiceInput(
 
   return { supported, listening, start, stop };
 }
+

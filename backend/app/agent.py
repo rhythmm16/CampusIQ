@@ -31,15 +31,23 @@ CORE CAPABILITIES:
 5. **Calculate routes**: Use calculate_route with the user's profile to get fastest/accessible/quiet/weather_shielded/scenic options
 6. **Voice guidance ready**: Your responses will be read aloud via text-to-speech in multiple languages
 
+CRITICAL WORKFLOW FOR ROUTING:
+When user asks for directions, you MUST follow this exact order:
+1. Call find_building(user's destination) → returns {"match": {"building_id": "cafeteria", "name": "..."}}
+2. Extract the building_id from the match result
+3. Call calculate_route(from_id="main_gate", to_id="cafeteria") using the ACTUAL building_id
+4. NEVER pass literal text like "Central Cafeteria" or "current location" to calculate_route - ONLY building_ids!
+
 WORKFLOW FOR COMPLEX QUERIES (e.g. "wheelchair + rain + destination"):
 1. Call find_building(destination)
 2. Call get_weather_hint() - ALWAYS call this to check current conditions (it's a free API, no cost)
 3. Call get_pulse() if user mentions crowds/queues/parking OR if weather data suggests high campus activity
-4. Call calculate_route() - it automatically picks accessible+weather-shielded routes based on profile
+4. Call calculate_route(from_id="main_gate", to_id=<building_id from step 1>) - USE BUILDING_ID NOT NAME!
 5. Explain the route choice clearly: "It's raining (25°C), so I've selected a step-free, covered route for your wheelchair access needs"
 
 CRITICAL RULES:
 - NEVER invent buildings, hours, or directions - use tools ONLY
+- ALWAYS use building_id (like "cafeteria", "library", "main_gate") in calculate_route, NEVER use building names
 - If wheelchair=true OR avoid_stairs=true OR elevator_required=true → MUST use accessible routes (no stairs)
 - If path blocked by event → surface alternate-route note from route warnings
 - If weather API returns is_raining=true OR is_hot=true → mention weather in response and recommend weather_shielded route
@@ -161,6 +169,8 @@ class Agent:
         self.model = ""
         self.vision_model = ""
         self._client = None
+        # Store conversation history per session (max 10 messages to avoid token limits)
+        self._conversations: dict[str, list[dict[str, str]]] = {}
         self._init_llm()
 
     def _init_llm(self) -> None:
@@ -236,11 +246,21 @@ class Agent:
     def _llm_respond(
         self, message: str, session_id: str, profile: dict[str, bool]
     ) -> dict[str, Any]:
+        # Initialize conversation history for new sessions
+        if session_id not in self._conversations:
+            self._conversations[session_id] = []
+        
+        # Build messages with conversation history
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "system", "content": f"User accessibility profile: {json.dumps(profile)}"},
-            {"role": "user", "content": message},
         ]
+        
+        # Add conversation history (last 10 messages to avoid token limits)
+        messages.extend(self._conversations[session_id][-10:])
+        
+        # Add current user message
+        messages.append({"role": "user", "content": message})
 
         collected_route: dict[str, Any] | None = None
         highlights: list[str] = []
@@ -255,8 +275,18 @@ class Agent:
             )
             choice = completion.choices[0].message
             if not choice.tool_calls:
+                assistant_response = choice.content or "How can I help you navigate campus?"
+                
+                # Store conversation history
+                self._conversations[session_id].append({"role": "user", "content": message})
+                self._conversations[session_id].append({"role": "assistant", "content": assistant_response})
+                
+                # Keep only last 20 messages (10 exchanges)
+                if len(self._conversations[session_id]) > 20:
+                    self._conversations[session_id] = self._conversations[session_id][-20:]
+                
                 return {
-                    "response": choice.content or "How can I help you navigate campus?",
+                    "response": assistant_response,
                     "route_data": collected_route,
                     "buildings_to_highlight": highlights,
                     "session_id": session_id,

@@ -10,6 +10,11 @@ if (!i18n.isInitialized) {
     fallbackLng: 'en',
     interpolation: { escapeValue: false },
     compatibilityJSON: 'v4',
+    // Suppress environment detection warnings in React Native
+    debug: false,
+    react: {
+      useSuspense: false,
+    },
   });
 }
 

@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
-  Animated as RNAnimated,
   Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,11 +13,9 @@ import { useRouter } from 'expo-router';
 import Animated, {
   FadeIn,
   SlideInUp,
-  useAnimatedStyle,
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { CampusMapView, BuildingPopup } from '@/components/map';
 import { useMapStore, useChatStore } from '@/store';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants/colors';
@@ -27,11 +24,11 @@ import { Search, Clock, MapPin, X, ChevronUp, ChevronDown } from 'lucide-react-n
 import * as Haptics from 'expo-haptics';
 
 const POPULAR_DESTINATIONS = [
-  { id: 'library', label: 'Library', emoji: '📚' },
-  { id: 'cafeteria', label: 'Central Cafeteria', emoji: '🍽️' },
-  { id: 'cs_block', label: 'CS Block', emoji: '💻' },
+  { id: 'library', label: 'LRC', emoji: '📚' },
+  { id: 'cafeteria', label: 'Cafeteria', emoji: '🍽️' },
+  { id: 'cs_block', label: 'De-Morgan', emoji: '💻' },
   { id: 'sports_complex', label: 'Sports Complex', emoji: '🏋️' },
-  { id: 'medical_center', label: 'Medical Center', emoji: '🏥' },
+  { id: 'medical_center', label: 'Health Center', emoji: '🏥' },
 ];
 
 export default function MapScreen() {
@@ -48,9 +45,9 @@ export default function MapScreen() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [sheetHeight, setSheetHeight] = useState(activeRoute ? 280 : 120);
-  const [isDragging, setIsDragging] = useState(false);
 
-  const sheetY = useSharedValue(activeRoute ? 280 : 120);
+  // Use shared value for smooth sheet animations
+  const sheetTranslateY = useSharedValue(0);
 
   const handleBuildingPress = (building: Building) => {
     selectBuilding(building);
@@ -85,8 +82,16 @@ export default function MapScreen() {
   const handleClearRoute = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     clearRoute();
+    // Smoothly animate sheet height change
     setSheetHeight(120);
   };
+
+  // Sync sheet height when route changes
+  useEffect(() => {
+    if (activeRoute && sheetHeight < 280) {
+      setSheetHeight(280);
+    }
+  }, [activeRoute]);
 
   const filteredBuildings = searchQuery.trim()
     ? buildings.filter(
@@ -116,10 +121,12 @@ export default function MapScreen() {
       )}
 
       <Animated.View
-        entering={SlideInUp.springify().damping(15)}
+        entering={SlideInUp.springify().damping(20).stiffness(90)}
         style={[
           styles.bottomSheet,
-          { height: sheetHeight },
+          {
+            height: sheetHeight,
+          },
         ]}
       >
         <View style={styles.handleBar} />
@@ -129,6 +136,10 @@ export default function MapScreen() {
           onPress={() => {
             const newHeight = sheetHeight === 280 ? 120 : 280;
             setSheetHeight(newHeight);
+            sheetTranslateY.value = withSpring(0, {
+              damping: 20,
+              stiffness: 90,
+            });
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           }}
           activeOpacity={0.7}
@@ -285,21 +296,23 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 12,
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 16,
     paddingBottom: 24,
   },
   handleBar: {
-    width: 36,
-    height: 4,
+    width: 40,
+    height: 5,
     backgroundColor: COLORS.border,
-    borderRadius: 2,
+    borderRadius: 3,
     alignSelf: 'center',
-    marginTop: 12,
+    marginTop: 10,
+    marginBottom: 4,
   },
   sheetHeader: {
     paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.lg,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
@@ -307,7 +320,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: SPACING.lg,
     gap: SPACING.sm,
   },
   sheetTitle: {
@@ -326,18 +338,26 @@ const styles = StyleSheet.create({
   },
   routeHeader: {
     alignItems: 'center',
+    marginBottom: SPACING.xs,
   },
   routeEndpoints: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
   },
   endpointPill: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
   startPill: {
     backgroundColor: '#10B981',
@@ -371,6 +391,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.lg,
     gap: SPACING.xl,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   stat: {
     flexDirection: 'row',
@@ -430,14 +455,17 @@ const styles = StyleSheet.create({
   clearRouteButton: {
     backgroundColor: COLORS.surface,
     paddingVertical: SPACING.md,
-    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.lg,
+    borderRadius: BORDER_RADIUS.lg,
     alignItems: 'center',
     marginTop: SPACING.sm,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   clearRouteText: {
     fontSize: FONT_SIZE.base,
     color: COLORS.textSecondary,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   searchSection: {
     gap: SPACING.lg,

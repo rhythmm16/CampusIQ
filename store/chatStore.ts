@@ -107,7 +107,7 @@ export const useChatStore = create<ChatState>()(
           return {
             response: `Live Campus Pulse:\n\n${formatPulseSummary()}\n\nI'll factor this into your route suggestions — e.g. take the east path when the cafeteria west entrance has a long queue.`,
             route_data: null,
-            buildings_to_highlight: ['cafeteria', 'library', 'parking_p1'],
+            buildings_to_highlight: ['cafeteria', 'library', 'parking_main'],
             session_id: get().sessionId,
             has_route: false,
           };
@@ -170,7 +170,7 @@ export const useChatStore = create<ChatState>()(
 
         if (msgLower.includes('event') || msgLower.includes('happening') || msgLower.includes('today')) {
           return {
-            response: 'Today\'s Events:\n\n🎭 Tech Fest Registration at Auditorium (all day)\n💻 AI Seminar at CS Block Seminar Hall (2 hours)\n⚠️ Library Path Maintenance - use alternate route via Cafeteria\n\nWould you like details or directions to any of these?',
+            response: 'Today\'s Events:\n\n🎭 Tech Fest Registration at University Auditorium (all day)\n💻 AI Seminar at De-Morgan Block Seminar Hall (2 hours)\n⚠️ Library Path Maintenance - use alternate route via Cafeteria\n\nWould you like details or directions to any of these?',
             route_data: null,
             buildings_to_highlight: ['auditorium', 'cs_block', 'library'],
             session_id: get().sessionId,
@@ -180,11 +180,11 @@ export const useChatStore = create<ChatState>()(
 
         if (msgLower.includes('food') || msgLower.includes('eat') || msgLower.includes('cafeteria')) {
           const cafeBuilding = BUILDINGS.find(b => b.building_id === 'cafeteria')!;
-          const foodTruck = BUILDINGS.find(b => b.building_id === 'food_truck_zone')!;
+          const foodCourt = BUILDINGS.find(b => b.building_id === 'food_court')!;
           return {
-            response: `You have a few food options on campus:\n\n🍽️ ${cafeBuilding.name}\nHours: 7 AM - 10 PM\nDistance: ~2 min walk\n\n🚚 ${foodTruck.name}\nHours: 11 AM - 10 PM\nDistance: ~3 min walk\n\nWhich one would you like directions to?`,
+            response: `You have a few food options on campus:\n\n🍽️ ${cafeBuilding.name}\nHours: 7 AM - 10 PM\nDistance: ~2 min walk\n\n🍕 ${foodCourt.name}\nHours: 11 AM - 10 PM\nDistance: ~3 min walk\n\nWhich one would you like directions to?`,
             route_data: null,
-            buildings_to_highlight: ['cafeteria', 'food_truck_zone'],
+            buildings_to_highlight: ['cafeteria', 'food_court'],
             session_id: get().sessionId,
             has_route: false,
           };
@@ -202,11 +202,11 @@ export const useChatStore = create<ChatState>()(
         }
 
         if (msgLower.includes('parking')) {
-          const parking = BUILDINGS.find(b => b.building_id === 'parking_p1')!;
+          const parking = BUILDINGS.find(b => b.building_id === 'parking_main')!;
           return {
-            response: `🅿️ ${parking.name}\n\nServices: ${parking.services.join(', ')}\n\nOpen 24 hours with EV charging available.\n\nWould you like directions to the parking lot?`,
+            response: `🅿️ ${parking.name}\n\nServices: ${parking.services.join(', ')}\n\nOpen 24 hours with accessible parking available.\n\nWould you like directions to the parking area?`,
             route_data: null,
-            buildings_to_highlight: ['parking_p1'],
+            buildings_to_highlight: ['parking_main'],
             session_id: get().sessionId,
             has_route: false,
           };

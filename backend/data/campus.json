@@ -1,19 +1,19 @@
 {
   "campus_center": {
-    "lat": 17.4465,
-    "lng": 78.3502
+    "lat": 30.5156,
+    "lng": 76.6596
   },
   "buildings": [
     {
       "building_id": "main_gate",
       "name": "Main Gate & Reception",
       "short_name": "Main Gate",
-      "description": "The main entrance to the campus with security checkpoint, visitor passes, and information desk.",
+      "description": "The main entrance to Chitkara University Rajpura campus with security checkpoint, visitor passes, and information desk.",
       "category": "services",
       "floor_count": 1,
       "coordinates": {
-        "lat": 17.445,
-        "lng": 78.3489
+        "lat": 30.5135,
+        "lng": 76.6575
       },
       "accessibility": {
         "wheelchair_accessible": true,
@@ -77,8 +77,8 @@
       "category": "admin",
       "floor_count": 3,
       "coordinates": {
-        "lat": 17.4455,
-        "lng": 78.3495
+        "lat": 30.5145,
+        "lng": 76.6585
       },
       "accessibility": {
         "wheelchair_accessible": true,
@@ -137,14 +137,14 @@
     },
     {
       "building_id": "library",
-      "name": "Main Library",
-      "short_name": "Library",
-      "description": "The main library with book lending, digital resources, study rooms, and a 24-hour study hall on the ground floor.",
+      "name": "Learning Resource Centre",
+      "short_name": "LRC",
+      "description": "The main library with extensive collection, digital resources, reading halls, and study spaces. Open from 9 AM to 9 PM.",
       "category": "library",
       "floor_count": 4,
       "coordinates": {
-        "lat": 17.4462,
-        "lng": 78.3501
+        "lat": 30.516,
+        "lng": 76.6595
       },
       "accessibility": {
         "wheelchair_accessible": true,
@@ -209,8 +209,8 @@
       "category": "food",
       "floor_count": 1,
       "coordinates": {
-        "lat": 17.4458,
-        "lng": 78.351
+        "lat": 30.5155,
+        "lng": 76.661
       },
       "accessibility": {
         "wheelchair_accessible": true,
@@ -270,14 +270,14 @@
     },
     {
       "building_id": "cs_block",
-      "name": "Computer Science Block",
-      "short_name": "CS Block",
-      "description": "The Computer Science department with computer labs, AI/ML lab, seminar hall, and faculty offices.",
+      "name": "De-Morgan Block",
+      "short_name": "De-Morgan",
+      "description": "Computer Science and Engineering department with computer labs, AI/ML facilities, seminar halls, and faculty offices.",
       "category": "academic",
       "floor_count": 3,
       "coordinates": {
-        "lat": 17.4468,
-        "lng": 78.3497
+        "lat": 30.5168,
+        "lng": 76.6592
       },
       "accessibility": {
         "wheelchair_accessible": true,
@@ -335,15 +335,15 @@
       "marker_color": "#0891B2"
     },
     {
-      "building_id": "mech_block",
-      "name": "Mechanical Engineering Block",
-      "short_name": "Mech Block",
+      "building_id": "engineering_block",
+      "name": "Engineering Block",
+      "short_name": "Engineering",
       "description": "The Mechanical Engineering department with workshops, CAD lab, and project rooms.",
       "category": "academic",
       "floor_count": 2,
       "coordinates": {
-        "lat": 17.4472,
-        "lng": 78.3505
+        "lat": 30.5172,
+        "lng": 76.6605
       },
       "accessibility": {
         "wheelchair_accessible": false,
@@ -401,14 +401,14 @@
     },
     {
       "building_id": "medical_center",
-      "name": "Medical Center & Infirmary",
-      "short_name": "Medical Center",
+      "name": "Health Center",
+      "short_name": "Health Center",
       "description": "Campus medical facility with emergency care, general physician, pharmacy, and ambulance services.",
       "category": "medical",
       "floor_count": 1,
       "coordinates": {
-        "lat": 17.4453,
-        "lng": 78.3518
+        "lat": 30.5142,
+        "lng": 76.6618
       },
       "accessibility": {
         "wheelchair_accessible": true,
@@ -467,14 +467,14 @@
     },
     {
       "building_id": "auditorium",
-      "name": "Main Auditorium",
+      "name": "University Auditorium",
       "short_name": "Auditorium",
-      "description": "The main auditorium for events, convocation ceremonies, and conferences with wheelchair seating available.",
+      "description": "The main auditorium for events, convocation ceremonies, cultural programs, and conferences with modern facilities.",
       "category": "academic",
       "floor_count": 1,
       "coordinates": {
-        "lat": 17.4465,
-        "lng": 78.3488
+        "lat": 30.5165,
+        "lng": 76.658
       },
       "accessibility": {
         "wheelchair_accessible": true,
@@ -539,8 +539,8 @@
       "category": "sports",
       "floor_count": 2,
       "coordinates": {
-        "lat": 17.4476,
-        "lng": 78.3481
+        "lat": 30.518,
+        "lng": 76.657
       },
       "accessibility": {
         "wheelchair_accessible": true,
@@ -599,15 +599,15 @@
       "marker_color": "#16A34A"
     },
     {
-      "building_id": "hostel_a",
-      "name": "Hostel Block A",
-      "short_name": "Hostel A",
+      "building_id": "boys_hostel",
+      "name": "Boys Hostel",
+      "short_name": "Boys Hostel",
       "description": "Student residence with common room, laundry, and accessible rooms available.",
       "category": "hostel",
       "floor_count": 5,
       "coordinates": {
-        "lat": 17.448,
-        "lng": 78.3495
+        "lat": 30.5185,
+        "lng": 76.6595
       },
       "accessibility": {
         "wheelchair_accessible": true,
@@ -665,15 +665,15 @@
       "marker_color": "#0369A1"
     },
     {
-      "building_id": "hostel_b",
-      "name": "Hostel Block B",
-      "short_name": "Hostel B",
+      "building_id": "girls_hostel",
+      "name": "Girls Hostel",
+      "short_name": "Girls Hostel",
       "description": "Student residence with common room and laundry facilities.",
       "category": "hostel",
       "floor_count": 4,
       "coordinates": {
-        "lat": 17.4483,
-        "lng": 78.3503
+        "lat": 30.5188,
+        "lng": 76.6605
       },
       "accessibility": {
         "wheelchair_accessible": false,
@@ -730,15 +730,15 @@
       "marker_color": "#0369A1"
     },
     {
-      "building_id": "parking_p1",
-      "name": "Parking Lot P1",
-      "short_name": "Parking P1",
+      "building_id": "parking_main",
+      "name": "Main Parking Area",
+      "short_name": "Parking",
       "description": "Main parking lot with car parking, bike parking, accessible bays, and EV charging stations.",
       "category": "parking",
       "floor_count": 1,
       "coordinates": {
-        "lat": 17.4447,
-        "lng": 78.3483
+        "lat": 30.5138,
+        "lng": 76.6582
       },
       "accessibility": {
         "wheelchair_accessible": true,
@@ -803,8 +803,8 @@
       "category": "lab",
       "floor_count": 5,
       "coordinates": {
-        "lat": 17.447,
-        "lng": 78.3513
+        "lat": 30.517,
+        "lng": 76.6615
       },
       "accessibility": {
         "wheelchair_accessible": true,
@@ -862,15 +862,15 @@
       "marker_color": "#0891B2"
     },
     {
-      "building_id": "food_truck_zone",
-      "name": "Food Truck Zone",
-      "short_name": "Food Trucks",
+      "building_id": "food_court",
+      "name": "Food Court",
+      "short_name": "Food Court",
       "description": "Outdoor food truck area with street food, beverages, quick bites, and outdoor seating.",
       "category": "food",
       "floor_count": 1,
       "coordinates": {
-        "lat": 17.4461,
-        "lng": 78.3521
+        "lat": 30.5158,
+        "lng": 76.6622
       },
       "accessibility": {
         "wheelchair_accessible": true,
@@ -935,8 +935,8 @@
       "category": "services",
       "floor_count": 1,
       "coordinates": {
-        "lat": 17.4452,
-        "lng": 78.3505
+        "lat": 30.5148,
+        "lng": 76.66
       },
       "accessibility": {
         "wheelchair_accessible": true,
@@ -1028,14 +1028,14 @@
     },
     {
       "from": "cs_block",
-      "to": "mech_block",
+      "to": "engineering_block",
       "distance": 100,
       "walk_time": 2,
       "is_accessible": false,
       "has_stairs": true
     },
     {
-      "from": "mech_block",
+      "from": "engineering_block",
       "to": "innovation_hub",
       "distance": 140,
       "walk_time": 2,
@@ -1044,14 +1044,14 @@
     },
     {
       "from": "main_gate",
-      "to": "parking_p1",
+      "to": "parking_main",
       "distance": 100,
       "walk_time": 2,
       "is_accessible": true,
       "has_stairs": false
     },
     {
-      "from": "parking_p1",
+      "from": "parking_main",
       "to": "medical_center",
       "distance": 200,
       "walk_time": 3,
@@ -1100,22 +1100,22 @@
     },
     {
       "from": "sports_complex",
-      "to": "hostel_a",
+      "to": "boys_hostel",
       "distance": 130,
       "walk_time": 2,
       "is_accessible": true,
       "has_stairs": false
     },
     {
-      "from": "hostel_a",
-      "to": "hostel_b",
+      "from": "boys_hostel",
+      "to": "girls_hostel",
       "distance": 90,
       "walk_time": 2,
       "is_accessible": false,
       "has_stairs": true
     },
     {
-      "from": "hostel_b",
+      "from": "girls_hostel",
       "to": "innovation_hub",
       "distance": 150,
       "walk_time": 3,
@@ -1132,7 +1132,7 @@
     },
     {
       "from": "cafeteria",
-      "to": "food_truck_zone",
+      "to": "food_court",
       "distance": 120,
       "walk_time": 2,
       "is_accessible": true,
@@ -1140,7 +1140,7 @@
     },
     {
       "from": "innovation_hub",
-      "to": "food_truck_zone",
+      "to": "food_court",
       "distance": 110,
       "walk_time": 2,
       "is_accessible": true,
@@ -1156,7 +1156,7 @@
     },
     {
       "from": "cs_block",
-      "to": "hostel_a",
+      "to": "boys_hostel",
       "distance": 200,
       "walk_time": 4,
       "is_accessible": true,
@@ -1172,14 +1172,14 @@
     },
     {
       "from": "sports_complex",
-      "to": "mech_block",
+      "to": "engineering_block",
       "distance": 180,
       "walk_time": 3,
       "is_accessible": false,
       "has_stairs": true
     },
     {
-      "from": "parking_p1",
+      "from": "parking_main",
       "to": "admin_block",
       "distance": 150,
       "walk_time": 3,
@@ -1251,7 +1251,7 @@
       "end_time": "2026-06-13T22:42:08.502Z",
       "event_type": "exam",
       "affects_navigation": true,
-      "alternate_route_note": "CS Block will have restricted entry during exam hours.",
+      "alternate_route_note": "De-Morgan Block will have restricted entry during exam hours.",
       "is_active": false
     }
   ],
@@ -1276,22 +1276,22 @@
       "is_covered": false,
       "is_indoor": false
     },
-    "cs_block-mech_block": {
+    "cs_block-engineering_block": {
       "noise_level": 5,
       "is_covered": false,
       "is_indoor": false
     },
-    "mech_block-innovation_hub": {
+    "engineering_block-innovation_hub": {
       "noise_level": 3,
       "is_covered": true,
       "is_indoor": false
     },
-    "main_gate-parking_p1": {
+    "main_gate-parking_main": {
       "noise_level": 4,
       "is_covered": false,
       "is_indoor": false
     },
-    "parking_p1-medical_center": {
+    "parking_main-medical_center": {
       "noise_level": 2,
       "is_covered": true,
       "is_indoor": false
@@ -1321,17 +1321,17 @@
       "is_covered": false,
       "is_indoor": false
     },
-    "sports_complex-hostel_a": {
+    "sports_complex-boys_hostel": {
       "noise_level": 4,
       "is_covered": false,
       "is_indoor": false
     },
-    "hostel_a-hostel_b": {
+    "boys_hostel-girls_hostel": {
       "noise_level": 3,
       "is_covered": false,
       "is_indoor": false
     },
-    "hostel_b-innovation_hub": {
+    "girls_hostel-innovation_hub": {
       "noise_level": 2,
       "is_covered": true,
       "is_indoor": false
@@ -1341,12 +1341,12 @@
       "is_covered": true,
       "is_indoor": true
     },
-    "cafeteria-food_truck_zone": {
+    "cafeteria-food_court": {
       "noise_level": 9,
       "is_covered": false,
       "is_indoor": false
     },
-    "innovation_hub-food_truck_zone": {
+    "innovation_hub-food_court": {
       "noise_level": 7,
       "is_covered": false,
       "is_indoor": false
@@ -1356,7 +1356,7 @@
       "is_covered": false,
       "is_indoor": false
     },
-    "cs_block-hostel_a": {
+    "cs_block-boys_hostel": {
       "noise_level": 4,
       "is_covered": true,
       "is_indoor": false
@@ -1366,12 +1366,12 @@
       "is_covered": true,
       "is_indoor": true
     },
-    "sports_complex-mech_block": {
+    "sports_complex-engineering_block": {
       "noise_level": 5,
       "is_covered": false,
       "is_indoor": false
     },
-    "parking_p1-admin_block": {
+    "parking_main-admin_block": {
       "noise_level": 3,
       "is_covered": true,
       "is_indoor": false
@@ -1387,26 +1387,26 @@
     },
     {
       "building_id": "library",
-      "label": "Main Library",
+      "label": "Learning Resource Centre",
       "status": "moderate",
       "detail": "42 study seats available (of 200). Quiet floor has space."
     },
     {
-      "building_id": "parking_p1",
-      "label": "Parking Lot P1",
+      "building_id": "parking_main",
+      "label": "Main Parking Area",
       "status": "moderate",
-      "detail": "12 accessible bays free. EV charging: 3 spots open."
+      "detail": "12 accessible bays free. Multiple parking zones available."
     },
     {
-      "building_id": "food_truck_zone",
-      "label": "Food Truck Zone",
+      "building_id": "food_court",
+      "label": "Food Court",
       "status": "busy",
       "congestion_penalty_minutes": 3,
       "detail": "Crowded lunch rush — noisy, avoid for sensory routes."
     },
     {
       "building_id": "auditorium",
-      "label": "Auditorium",
+      "label": "University Auditorium",
       "status": "good",
       "detail": "Tech Fest registration — moderate foot traffic near lobby."
     }
@@ -1418,8 +1418,8 @@
       "name": "Main Gate Emergency Exit",
       "building_id": "main_gate",
       "coordinates": {
-        "lat": 17.4448,
-        "lng": 78.3487
+        "lat": 30.5134,
+        "lng": 76.6573
       }
     },
     {
@@ -1428,8 +1428,8 @@
       "name": "Admin Block Rear Exit",
       "building_id": "admin_block",
       "coordinates": {
-        "lat": 17.4453,
-        "lng": 78.3498
+        "lat": 30.5144,
+        "lng": 76.6587
       }
     },
     {
@@ -1438,30 +1438,30 @@
       "name": "AED — Admin Block Ground Floor",
       "building_id": "admin_block",
       "coordinates": {
-        "lat": 17.4456,
-        "lng": 78.3494
+        "lat": 30.5145,
+        "lng": 76.6585
       },
       "floor": "Ground"
     },
     {
       "id": "aed_library",
       "type": "aed",
-      "name": "AED — Library Entrance",
+      "name": "AED — LRC Entrance",
       "building_id": "library",
       "coordinates": {
-        "lat": 17.4461,
-        "lng": 78.3499
+        "lat": 30.516,
+        "lng": 76.6594
       },
       "floor": "Ground"
     },
     {
       "id": "aed_medical",
       "type": "aed",
-      "name": "AED — Medical Center",
+      "name": "AED — Health Center",
       "building_id": "medical_center",
       "coordinates": {
-        "lat": 17.4468,
-        "lng": 78.351
+        "lat": 30.5142,
+        "lng": 76.6618
       }
     },
     {
@@ -1470,8 +1470,8 @@
       "name": "Sports Ground Assembly Point",
       "building_id": "sports_complex",
       "coordinates": {
-        "lat": 17.4478,
-        "lng": 78.352
+        "lat": 30.5181,
+        "lng": 76.6568
       }
     },
     {
@@ -1480,8 +1480,8 @@
       "name": "Main Gate Assembly Area",
       "building_id": "main_gate",
       "coordinates": {
-        "lat": 17.4449,
-        "lng": 78.3491
+        "lat": 30.5136,
+        "lng": 76.6576
       }
     }
   ]

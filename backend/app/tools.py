@@ -138,7 +138,7 @@ def get_weather_hint() -> dict[str, Any]:
             lat = buildings[0]["coordinates"]["lat"]
             lng = buildings[0]["coordinates"]["lng"]
         else:
-            lat, lng = 17.4465, 78.3502  # Default campus center
+            lat, lng = 30.5156, 76.6596  # Chitkara University Rajpura campus center
         
         url = (
             f"https://api.open-meteo.com/v1/forecast?"

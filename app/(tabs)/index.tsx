@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, KeyboardAvoidingView, Platform, Image, ScrollView, TouchableOpacity, } from 'react-native';
+import { View, Text, StyleSheet, FlatList, KeyboardAvoidingView, Platform, Image, ScrollView, TouchableOpacity, Alert, } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -10,14 +10,14 @@ import { ChatBubble, ChatInput, TypingIndicator, QuickActions } from '@/componen
 import { OfflineBanner, EventBanner, AccessibilityProfileModal } from '@/components/ui';
 import { COLORS, FONT_SIZE, SPACING } from '@/constants/colors';
 import { SAMPLE_EVENTS, BUILDINGS } from '@/constants/campus';
-import { Settings, Accessibility, QrCode, TriangleAlert, Camera } from 'lucide-react-native';
+import { Settings, Accessibility, QrCode, TriangleAlert, Camera, MessageSquarePlus } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 
 export default function ChatScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const flatListRef = useRef<FlatList>(null);
-  const { messages, isLoading, sendMessage, isConnected, sessionId } = useChat();
+  const { messages, isLoading, sendMessage, isConnected, sessionId, clearHistory } = useChat();
   const { accessibilityProfile, hasCompletedOnboarding } = useUserStore();
   const { events, activeRoute } = useMapStore();
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -43,6 +43,32 @@ export default function ChatScreen() {
 
   const handleProfilePress = () => {
     setShowProfileModal(true);
+  };
+
+  const handleNewChat = () => {
+    if (messages.length === 0) return;
+    
+    Alert.alert(
+      t('profile.clearConversation'),
+      t('profile.clearConversationMessage'),
+      [
+        {
+          text: t('common.cancel'),
+          style: 'cancel',
+        },
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: () => {
+            clearHistory();
+            Toast.show({
+              type: 'success',
+              text1: t('profile.conversationCleared'),
+            });
+          },
+        },
+      ]
+    );
   };
 
   const hasActiveAccessibilityNeeds =
@@ -96,6 +122,16 @@ export default function ChatScreen() {
                 <Accessibility size={18} color={COLORS.accent} />
               </TouchableOpacity>
             )}
+            {messages.length > 0 && (
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={handleNewChat}
+                accessibilityRole="button"
+                accessibilityLabel="Start new conversation"
+              >
+                <MessageSquarePlus size={20} color={COLORS.primary} />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={styles.iconButton}
               onPress={() => router.push('/snap')}
@@ -103,14 +139,6 @@ export default function ChatScreen() {
               accessibilityLabel={t('snap.title')}
             >
               <Camera size={20} color={COLORS.textSecondary} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() => router.push('/scan')}
-              accessibilityRole="button"
-              accessibilityLabel={t('scan.title')}
-            >
-              <QrCode size={20} color={COLORS.textSecondary} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.iconButton}

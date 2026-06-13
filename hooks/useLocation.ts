@@ -3,8 +3,8 @@ import { LocationState } from '@/types';
 
 export function useLocation() {
   const [location, setLocation] = useState<LocationState>({
-    latitude: 17.4465,
-    longitude: 78.3502,
+    latitude: 30.5135,
+    longitude: 76.6575,
     hasPermission: false,
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -18,8 +18,8 @@ export function useLocation() {
       if (!Location) {
         // Use default campus location on web
         setLocation({
-          latitude: 17.4465,
-          longitude: 78.3502,
+          latitude: 30.5135,
+          longitude: 76.6575,
           hasPermission: false,
         });
         setIsLoading(false);
