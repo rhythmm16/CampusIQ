@@ -43,31 +43,42 @@ export function BuildingCard({ building, onPress, showStatus = true }: BuildingC
 
   return (
     <Animated.View entering={FadeInDown.duration(200)}>
-      <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
+      <TouchableOpacity
+        style={styles.container}
+        onPress={onPress}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={`${building.name}, ${building.category}, ${isOpen ? 'open now' : 'closed'}`}
+        accessibilityHint="Opens building details"
+      >
         <View style={styles.iconContainer}>
           <Text style={styles.icon}>{building.marker_emoji}</Text>
         </View>
 
         <View style={styles.content}>
-          <View style={styles.header}>
-            <Text style={styles.name}>{building.name}</Text>
+          <View style={styles.topRow}>
+            <Text style={styles.name} numberOfLines={1}>{building.name}</Text>
             {showStatus && (
-              <View style={[styles.statusPill, isOpen ? styles.statusOpen : styles.statusClosed]}>
-                <Text style={[styles.statusText, isOpen ? styles.statusTextOpen : styles.statusTextClosed]}>
-                  {isOpen ? 'Open' : 'Closed'}
-                </Text>
+              <View style={[styles.statusBadge, isOpen ? styles.statusOpen : styles.statusClosed]}>
+                <View style={[styles.statusDot, isOpen ? styles.dotOpen : styles.dotClosed]} />
               </View>
             )}
           </View>
 
-          <Text style={styles.shortName}>{building.short_name}</Text>
+          <Text style={styles.shortName} numberOfLines={1}>{building.short_name}</Text>
 
-          <View style={styles.categoryRow}>
+          <View style={styles.infoRow}>
             <View style={styles.categoryBadge}>
               <Text style={styles.categoryText}>
                 {categoryEmoji[building.category]} {building.category.charAt(0).toUpperCase() + building.category.slice(1)}
               </Text>
             </View>
+            
+            {showStatus && (
+              <Text style={styles.hoursText}>
+                {hours.is_closed ? 'Closed' : `${hours.open} - ${hours.close}`}
+              </Text>
+            )}
           </View>
 
           <AccessibilityBadges
@@ -76,7 +87,9 @@ export function BuildingCard({ building, onPress, showStatus = true }: BuildingC
           />
         </View>
 
-        <ChevronRight size={20} color={COLORS.textMuted} />
+        <View style={styles.chevronContainer}>
+          <ChevronRight size={20} color={COLORS.primary} strokeWidth={2.5} />
+        </View>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -87,48 +100,52 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.card,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.lg,
     marginBottom: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 16,
     backgroundColor: COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING.lg,
     borderWidth: 2,
-    borderColor: COLORS.border,
+    borderColor: COLORS.primary + '20',
   },
   icon: {
-    fontSize: 24,
+    fontSize: 28,
   },
   content: {
     flex: 1,
   },
-  header: {
+  topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   name: {
     flex: 1,
     fontSize: FONT_SIZE.lg,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.textPrimary,
   },
-  statusPill: {
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 2,
-    borderRadius: BORDER_RADIUS.full,
+  statusBadge: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   statusOpen: {
     backgroundColor: '#DCFCE7',
@@ -136,34 +153,48 @@ const styles = StyleSheet.create({
   statusClosed: {
     backgroundColor: '#FEE2E2',
   },
-  statusText: {
-    fontSize: FONT_SIZE.xs,
-    fontWeight: '500',
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
-  statusTextOpen: {
-    color: '#166534',
+  dotOpen: {
+    backgroundColor: '#16A34A',
   },
-  statusTextClosed: {
-    color: '#991B1B',
+  dotClosed: {
+    backgroundColor: '#DC2626',
   },
   shortName: {
     fontSize: FONT_SIZE.sm,
     color: COLORS.textSecondary,
     marginBottom: SPACING.sm,
+    fontWeight: '500',
   },
-  categoryRow: {
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
     marginBottom: SPACING.sm,
   },
   categoryBadge: {
-    selfAlign: 'flex-start',
     paddingHorizontal: SPACING.sm,
-    paddingVertical: 3,
-    backgroundColor: COLORS.surface,
+    paddingVertical: 4,
+    backgroundColor: COLORS.primary + '15',
     borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '30',
   },
   categoryText: {
     fontSize: FONT_SIZE.xs,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  hoursText: {
+    fontSize: FONT_SIZE.xs,
     color: COLORS.textSecondary,
     fontWeight: '500',
+  },
+  chevronContainer: {
+    marginLeft: SPACING.sm,
   },
 });
