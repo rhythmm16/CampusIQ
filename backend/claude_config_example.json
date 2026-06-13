@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "campusiq": {
+      "command": "python",
+      "args": [
+        "C:/Users/LENOVO/Downloads/campusapp/campusapp/backend/mcp_server.py"
+      ],
+      "env": {
+        "GROQ_API_KEY": "gsk_your_actual_groq_api_key_here"
+      }
+    }
+  }
+}
