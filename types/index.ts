@@ -47,7 +47,7 @@ export interface RouteSegment {
 }
 
 export interface RouteData {
-  route_type: 'fastest' | 'accessible' | 'scenic';
+  route_type: 'fastest' | 'accessible' | 'scenic' | 'quiet' | 'weather_shielded';
   from_building: Building;
   to_building: Building;
   steps: string[];
@@ -57,6 +57,8 @@ export interface RouteData {
   total_walk_time_minutes: number;
   accessibility_notes?: string;
   event_warnings?: string[];
+  pulse_warnings?: string[];
+  weather_note?: string;
 }
 
 export interface ChatResponse {
@@ -65,6 +67,8 @@ export interface ChatResponse {
     fastest?: RouteData;
     accessible?: RouteData;
     scenic?: RouteData;
+    quiet?: RouteData;
+    weather_shielded?: RouteData;
   } | null;
   buildings_to_highlight: string[];
   session_id: string;
@@ -86,6 +90,8 @@ export interface AccessibilityProfile {
   elevator_required: boolean;
   avoid_stairs: boolean;
   slow_walker: boolean;
+  /** Sensory / quiet route — avoids noisy cafeterias, crowds, construction */
+  sensory_friendly: boolean;
 }
 
 export type EventType = 'seminar' | 'exam' | 'sports' | 'maintenance' | 'emergency' | 'cultural';
