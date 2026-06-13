@@ -1,0 +1,43 @@
+{
+  "description": "Golden dataset for CampusIQ navigation agent. Used by prompt/behavior tests to guard against regressions in building resolution and routing.",
+  "cases": [
+    {
+      "id": "directions_library",
+      "query": "How do I get to the library?",
+      "expected_building_id": "library",
+      "expects_route": true
+    },
+    {
+      "id": "directions_cafeteria",
+      "query": "directions to the cafeteria",
+      "expected_building_id": "cafeteria",
+      "expects_route": true
+    },
+    {
+      "id": "directions_medical",
+      "query": "take me to the medical center",
+      "expected_building_id": "medical_center",
+      "expects_route": true
+    },
+    {
+      "id": "hours_library",
+      "query": "what are the library hours?",
+      "expected_building_id": "library",
+      "expects_route": false
+    },
+    {
+      "id": "events_today",
+      "query": "what events are happening today?",
+      "expects_route": false,
+      "expects_events": true
+    },
+    {
+      "id": "wheelchair_innovation",
+      "query": "wheelchair route to the innovation hub",
+      "expected_building_id": "innovation_hub",
+      "expects_route": true,
+      "profile": { "wheelchair": true },
+      "expects_step_free": true
+    }
+  ]
+}
