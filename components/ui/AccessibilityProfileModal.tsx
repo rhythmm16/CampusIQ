@@ -53,6 +53,12 @@ const TOGGLE_ITEMS: ToggleItem[] = [
     icon: Footprints,
   },
   {
+    key: 'sensory_friendly',
+    label: 'Sensory / Quiet Route',
+    description: 'Avoid noisy cafeterias, crowds, and construction zones',
+    icon: Ear,
+  },
+  {
     key: 'slow_walker',
     label: 'Slow Walker',
     description: 'Prefer shorter walking distances',
@@ -100,7 +106,7 @@ export function AccessibilityProfileModal({
 
         <Text style={styles.subtitle}>
           {isOnboarding
-            ? 'CampusWay AI will automatically apply these settings to all route recommendations'
+            ? 'CampusIQ will automatically apply these settings to all route recommendations'
             : 'Customize your navigation preferences for accessibility-aware routing'}
         </Text>
 

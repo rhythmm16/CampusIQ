@@ -7,6 +7,7 @@ import Animated, {
   withSequence,
   withTiming,
   withDelay,
+  type SharedValue,
 } from 'react-native-reanimated';
 import { COLORS, SPACING } from '@/constants/colors';
 
@@ -21,7 +22,7 @@ export function LoadingDots({ color = COLORS.primary, size = 8 }: LoadingDotsPro
   const scale3 = useSharedValue(1);
 
   useEffect(() => {
-    const animateDot = (value: Animated.SharedValue<number>, delay: number) => {
+    const animateDot = (value: SharedValue<number>, delay: number) => {
       value.value = withDelay(
         delay,
         withRepeat(
