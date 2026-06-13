@@ -454,19 +454,22 @@ Present:
 
 def main():
     """Main entry point for the MCP server."""
-    print("🎓 CampusIQ MCP Server Starting...")
-    print(f"📁 Backend Directory: {backend_dir}")
-    print(f"🔑 Groq API Key: {'Configured ✓' if os.getenv('GROQ_API_KEY') else 'Not configured ✗'}")
-    print("=" * 60)
+    # Use stderr for logging to avoid Unicode issues with Claude Desktop
+    import sys
+    sys.stderr.write("CampusIQ MCP Server Starting...\n")
+    sys.stderr.write(f"Backend Directory: {backend_dir}\n")
+    sys.stderr.write(f"Groq API Key: {'Configured' if os.getenv('GROQ_API_KEY') else 'Not configured'}\n")
+    sys.stderr.write("=" * 60 + "\n")
+    sys.stderr.flush()
     
     try:
         mcp.run()
     except KeyboardInterrupt:
-        print("\n\n👋 Shutting down CampusIQ MCP Server...")
+        sys.stderr.write("\n\nShutting down CampusIQ MCP Server...\n")
     except Exception as e:
-        print(f"\n❌ Error running MCP server: {e}")
+        sys.stderr.write(f"\nError running MCP server: {e}\n")
         import traceback
-        traceback.print_exc()
+        traceback.print_exc(file=sys.stderr)
         return 1
     
     return 0
