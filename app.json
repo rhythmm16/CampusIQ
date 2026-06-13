@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "CampusWay AI",
-    "slug": "campusway-ai",
+    "name": "CampusIQ",
+    "slug": "campusiq",
     "version": "1.0.0",
-    "scheme": "campusway",
+    "scheme": "campusiq",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "automatic",
@@ -15,10 +15,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.campusway.ai"
+      "bundleIdentifier": "com.campusiq.app"
     },
     "android": {
-      "package": "com.campusway.ai",
+      "package": "com.campusiq.app",
       "adaptiveIcon": {
         "backgroundColor": "#1E40AF",
         "foregroundImage": "./assets/images/icon.png"
@@ -32,7 +32,19 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "CampusIQ uses the camera to scan campus QR codes and identify landmarks."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow CampusIQ to use your location to show your position on the map and provide navigation."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
