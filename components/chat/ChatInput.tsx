@@ -6,9 +6,12 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
-import { Send } from 'lucide-react-native';
+import { Send, Mic } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants/colors';
 import * as Haptics from 'expo-haptics';
+import { useVoiceInput } from '@/hooks';
+import { useUserStore } from '@/store';
 
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
@@ -21,9 +24,15 @@ export function ChatInput({
   onSendMessage,
   isLoading = false,
   disabled = false,
-  placeholder = 'Ask about campus navigation...',
+  placeholder,
 }: ChatInputProps) {
   const [message, setMessage] = useState('');
+  const { t } = useTranslation();
+  const language = useUserStore((s) => s.language);
+
+  const { supported: voiceSupported, listening, start, stop } = useVoiceInput((transcript) => {
+    setMessage((prev) => (prev ? `${prev} ${transcript}` : transcript));
+  }, language);
 
   const handleSend = () => {
     if (message.trim() && !isLoading && !disabled) {
@@ -33,7 +42,18 @@ export function ChatInput({
     }
   };
 
+  const handleMicPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (listening) {
+      stop();
+    } else {
+      start();
+    }
+  };
+
   const isSendDisabled = !message.trim() || isLoading || disabled;
+
+  const defaultPlaceholder = placeholder || t('chat.placeholder');
 
   return (
     <View style={styles.container}>
@@ -44,7 +64,13 @@ export function ChatInput({
           style={styles.input}
           value={message}
           onChangeText={setMessage}
-          placeholder={disabled ? 'Offline mode - limited functionality' : placeholder}
+          placeholder={
+            listening
+              ? t('chat.listening')
+              : disabled
+              ? t('common.offline')
+              : defaultPlaceholder
+          }
           placeholderTextColor={disabled ? COLORS.textMuted : COLORS.textSecondary}
           multiline
           maxLength={500}
@@ -53,11 +79,27 @@ export function ChatInput({
           returnKeyType="send"
         />
 
+        {voiceSupported && !disabled && (
+          <TouchableOpacity
+            style={[styles.micButton, listening && styles.micButtonActive]}
+            onPress={handleMicPress}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={listening ? t('chat.stop') : t('chat.voice')}
+            accessibilityState={{ selected: listening }}
+          >
+            <Mic size={20} color={listening ? '#FFFFFF' : COLORS.textSecondary} />
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity
           style={[styles.sendButton, isSendDisabled && styles.sendButtonDisabled]}
           onPress={handleSend}
           disabled={isSendDisabled}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={t('chat.send')}
+          accessibilityState={{ disabled: isSendDisabled }}
         >
           <Send
             size={20}
@@ -99,7 +141,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
     maxHeight: 120,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Inter-Regular',
+  },
+  micButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  micButtonActive: {
+    backgroundColor: COLORS.danger,
   },
   sendButton: {
     width: 40,

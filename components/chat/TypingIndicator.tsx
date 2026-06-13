@@ -7,6 +7,7 @@ import Animated, {
   withSequence,
   withTiming,
   withDelay,
+  type SharedValue,
 } from 'react-native-reanimated';
 import { COLORS, SPACING, BORDER_RADIUS } from '@/constants/colors';
 
@@ -16,7 +17,7 @@ export function TypingIndicator() {
   const scale3 = useSharedValue(1);
 
   useEffect(() => {
-    const animateDot = (value: Animated.SharedValue<number>, delay: number) => {
+    const animateDot = (value: SharedValue<number>, delay: number) => {
       value.value = withDelay(
         delay,
         withRepeat(
