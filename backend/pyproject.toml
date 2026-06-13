@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "campusiq-mcp"
+version = "1.0.0"
+description = "CampusIQ MCP Server - Campus Navigation for AI Assistants"
+readme = "MCP_README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "CampusIQ Team"}
+]
+keywords = ["mcp", "campus", "navigation", "accessibility", "ai"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "fastmcp>=0.1.0",
+    "python-dotenv>=1.0.0",
+    "httpx>=0.25.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+]
+server = [
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "networkx>=3.0",
+]
+
+[project.scripts]
+campusiq-mcp = "mcp_server:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*", "mcp_server"]
+
+[tool.setuptools.package-data]
+"*" = ["*.json", "*.md"]
