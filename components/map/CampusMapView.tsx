@@ -1,63 +1,27 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { StyleSheet, View, Platform, TouchableOpacity, Text, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
-import Animated, { FadeIn } from 'react-native-reanimated';
-import { Building, RouteData, Coordinates } from '@/types';
+import { StyleSheet, View, TouchableOpacity, Text, Platform, Animated as RNAnimated } from 'react-native';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import Animated, { FadeIn, FadeInDown, useAnimatedStyle, useSharedValue, withTiming, withSequence } from 'react-native-reanimated';
+import { Building } from '@/types';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants/colors';
-import { INITIAL_MAP_REGION, BUILDINGS, SAMPLE_EVENTS } from '@/constants/campus';
 import { useMapStore } from '@/store';
 import * as Haptics from 'expo-haptics';
-import { Locate, X, MapPin } from 'lucide-react-native';
+import { X, MapPin, Navigation } from 'lucide-react-native';
+import { INITIAL_MAP_REGION, BUILDINGS } from '@/constants/campus';
 
 interface CampusMapViewProps {
   onBuildingPress?: (building: Building) => void;
   showControls?: boolean;
 }
 
-// Building item component for the list view
-function BuildingListItem({
-  building,
-  onPress,
-  isActive,
-}: {
-  building: Building;
-  onPress: () => void;
-  isActive: boolean;
-}) {
-  return (
-    <TouchableOpacity
-      style={[styles.buildingItem, isActive && styles.buildingItemActive]}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <View style={[styles.buildingDot, { backgroundColor: building.marker_color }]} />
-      <View style={styles.buildingContent}>
-        <Text style={styles.buildingName}>{building.short_name}</Text>
-        <Text style={styles.buildingCategory}>{building.category}</Text>
-      </View>
-      <Text style={styles.buildingEmoji}>{building.marker_emoji}</Text>
-    </TouchableOpacity>
-  );
-}
-
 export function CampusMapView({ onBuildingPress, showControls = true }: CampusMapViewProps) {
-  const router = useRouter();
-  const { activeRoute, highlightedBuildingId, clearRoute, selectBuilding } = useMapStore();
-  const [animatedProgress, setAnimatedProgress] = useState(0);
-
-  useEffect(() => {
-    if (activeRoute) {
-      setAnimatedProgress(0);
-      const animate = () => {
-        setAnimatedProgress((prev) => {
-          if (prev >= 1) return 1;
-          return prev + 0.05;
-        });
-      };
-      const interval = setInterval(animate, 50);
-      return () => clearInterval(interval);
-    }
-  }, [activeRoute]);
+  const mapRef = useRef<MapView>(null);
+  const { activeRoute, highlightedBuildingId, clearRoute, currentLocationId } = useMapStore();
+  const [routeAnimated, setRouteAnimated] = useState(false);
+  
+  // Animation for route card
+  const routeScale = useSharedValue(0);
+  const routeOpacity = useSharedValue(0);
 
   const handleBuildingPress = (building: Building) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -66,69 +30,197 @@ export function CampusMapView({ onBuildingPress, showControls = true }: CampusMa
 
   const handleClearRoute = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setRouteAnimated(false);
+    routeScale.value = 0;
+    routeOpacity.value = 0;
     clearRoute();
   };
 
-  // Get buildings to show (all or route endpoints)
-  const displayBuildings = activeRoute
-    ? [activeRoute.from_building, activeRoute.to_building]
-    : BUILDINGS;
+  const handleRecenterMap = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (activeRoute && mapRef.current) {
+      // Fit map to show the entire route
+      const coordinates = [
+        activeRoute.from_building.coordinates,
+        ...activeRoute.waypoints.map(w => w.coordinates),
+        activeRoute.to_building.coordinates,
+      ].map(coord => ({
+        latitude: coord.lat,
+        longitude: coord.lng,
+      }));
+
+      mapRef.current.fitToCoordinates(coordinates, {
+        edgePadding: { top: 100, right: 50, bottom: 250, left: 50 },
+        animated: true,
+      });
+    } else if (mapRef.current) {
+      mapRef.current.animateToRegion(INITIAL_MAP_REGION, 1000);
+    }
+  };
+
+  // Auto-fit map when route changes with animation
+  useEffect(() => {
+    if (activeRoute && mapRef.current && !routeAnimated) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      
+      // Animate route card entrance
+      routeOpacity.value = withTiming(1, { duration: 300 });
+      routeScale.value = withSequence(
+        withTiming(1.1, { duration: 200 }),
+        withTiming(1, { duration: 150 })
+      );
+      
+      setTimeout(() => {
+        handleRecenterMap();
+        setRouteAnimated(true);
+      }, 400);
+    }
+  }, [activeRoute]);
+
+  // Reset animation state when route is cleared
+  useEffect(() => {
+    if (!activeRoute) {
+      setRouteAnimated(false);
+      routeScale.value = 0;
+      routeOpacity.value = 0;
+    }
+  }, [activeRoute]);
+
+  const animatedRouteStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: routeScale.value }],
+    opacity: routeOpacity.value,
+  }));
+
+  // Get route path coordinates
+  const routeCoordinates = activeRoute
+    ? [
+        { latitude: activeRoute.from_building.coordinates.lat, longitude: activeRoute.from_building.coordinates.lng },
+        ...activeRoute.waypoints.map(w => ({
+          latitude: w.coordinates.lat,
+          longitude: w.coordinates.lng,
+        })),
+        { latitude: activeRoute.to_building.coordinates.lat, longitude: activeRoute.to_building.coordinates.lng },
+      ]
+    : [];
 
   return (
     <View style={styles.container}>
-      {/* For web, we show a list-based map view since react-native-maps doesn't work on web */}
-      <View style={styles.mapContainer}>
-        <View style={styles.campusHeader}>
-          <MapPin size={20} color={COLORS.primary} />
-          <Text style={styles.campusTitle}>Campus Map</Text>
-        </View>
-
-        {activeRoute && (
-          <Animated.View entering={FadeIn.duration(300)} style={styles.routeOverview}>
-            <View style={styles.routeHeader}>
-              <View style={styles.routeEndpoint}>
-                <View style={[styles.endpointDot, styles.startDot]} />
-                <Text style={styles.endpointText}>{activeRoute.from_building.short_name}</Text>
-              </View>
-              <Text style={styles.routeArrow}>→</Text>
-              <View style={styles.routeEndpoint}>
-                <View style={[styles.endpointDot, styles.endDot]} />
-                <Text style={styles.endpointText}>{activeRoute.to_building.short_name}</Text>
-              </View>
-            </View>
-
-            <View style={styles.routeStats}>
-              <Text style={styles.routeStatText}>
-                    {activeRoute.total_walk_time_minutes} min • {activeRoute.total_distance_meters}m
-              </Text>
-            </View>
-
-            <View style={styles.animatedLine}>
-              <View style={[styles.animatedProgress, { width: `${animatedProgress * 100}%` }]} />
-            </View>
-          </Animated.View>
-        )}
-
-        <ScrollView
-          style={styles.buildingsList}
-          showsVerticalScrollIndicator={false}
-        >
-          {displayBuildings.map((building) => (
-            <BuildingListItem
-              key={building.building_id}
-              building={building}
-              onPress={() => handleBuildingPress(building)}
-              isActive={highlightedBuildingId === building.building_id}
-            />
-          ))}
-        </ScrollView>
+      {/* Header */}
+      <View style={styles.mapHeader}>
+        <MapPin size={20} color={COLORS.primary} />
+        <Text style={styles.headerTitle}>Campus Map</Text>
       </View>
 
-      {showControls && activeRoute && (
+      {/* Route Overview Card */}
+      {activeRoute && (
+        <Animated.View 
+          entering={FadeInDown.duration(400).delay(100)} 
+          style={[styles.routeOverview, animatedRouteStyle]}
+        >
+          <View style={styles.routeHeader}>
+            <View style={styles.routeEndpoint}>
+              <View style={[styles.endpointDot, styles.startDot]} />
+              <Text style={styles.endpointText}>{activeRoute.from_building.short_name}</Text>
+            </View>
+            <Text style={styles.routeArrow}>→</Text>
+            <View style={styles.routeEndpoint}>
+              <View style={[styles.endpointDot, styles.endDot]} />
+              <Text style={styles.endpointText}>{activeRoute.to_building.short_name}</Text>
+            </View>
+          </View>
+
+          <View style={styles.routeStats}>
+            <Text style={styles.routeStatText}>
+              {activeRoute.total_walk_time_minutes} min • {activeRoute.total_distance_meters}m
+            </Text>
+          </View>
+        </Animated.View>
+      )}
+
+      {/* Map */}
+      <MapView
+        ref={mapRef}
+        style={styles.map}
+        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+        initialRegion={INITIAL_MAP_REGION}
+        showsUserLocation={true}
+        showsMyLocationButton={false}
+        showsCompass={true}
+        showsScale={true}
+        loadingEnabled={true}
+      >
+        {/* Building Markers */}
+        {BUILDINGS.map((building) => {
+          const isHighlighted = building.building_id === highlightedBuildingId;
+          const isOnRoute = activeRoute && (
+            building.building_id === activeRoute.from_building.building_id ||
+            building.building_id === activeRoute.to_building.building_id ||
+            activeRoute.segments.some(s => s.to === building.building_id)
+          );
+          const isCurrent = building.building_id === currentLocationId;
+
+          return (
+            <Marker
+              key={building.building_id}
+              coordinate={{
+                latitude: building.coordinates.lat,
+                longitude: building.coordinates.lng,
+              }}
+              title={building.short_name}
+              description={building.category}
+              onPress={() => handleBuildingPress(building)}
+              pinColor={
+                isCurrent
+                  ? '#10B981' // Green for current location
+                  : isOnRoute
+                  ? COLORS.primary
+                  : isHighlighted
+                  ? COLORS.accent
+                  : building.marker_color || COLORS.textMuted
+              }
+            >
+              <View style={[
+                styles.markerContainer,
+                (isHighlighted || isOnRoute) && styles.markerHighlighted,
+                isCurrent && styles.markerCurrent,
+              ]}>
+                <Text style={styles.markerEmoji}>{building.marker_emoji}</Text>
+              </View>
+            </Marker>
+          );
+        })}
+
+        {/* Route Polyline */}
+        {routeCoordinates.length > 0 && (
+          <Polyline
+            coordinates={routeCoordinates}
+            strokeColor={COLORS.primary}
+            strokeWidth={4}
+            lineDashPattern={[1]}
+          />
+        )}
+      </MapView>
+
+      {/* Map Controls */}
+      {showControls && (
         <View style={styles.controls}>
-          <TouchableOpacity style={[styles.controlButton, styles.clearButton]} onPress={handleClearRoute}>
-            <X size={20} color="#FFFFFF" />
+          <TouchableOpacity
+            style={styles.controlButton}
+            onPress={handleRecenterMap}
+            accessibilityLabel="Recenter map"
+          >
+            <Navigation size={20} color={COLORS.primary} />
           </TouchableOpacity>
+
+          {activeRoute && (
+            <TouchableOpacity
+              style={[styles.controlButton, styles.clearButton]}
+              onPress={handleClearRoute}
+              accessibilityLabel="Clear route"
+            >
+              <X size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </View>
@@ -139,46 +231,53 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  mapContainer: {
-    flex: 1,
-    backgroundColor: COLORS.surface,
+  mapHeader: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    backgroundColor: '#FFFFFF',
     borderRadius: BORDER_RADIUS.lg,
-    margin: SPACING.md,
-    padding: SPACING.md,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 4,
+    zIndex: 10,
   },
-  campusHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    paddingVertical: SPACING.md,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    marginBottom: SPACING.md,
-  },
-  campusTitle: {
+  headerTitle: {
     fontSize: FONT_SIZE.lg,
     fontWeight: '600',
     color: COLORS.textPrimary,
   },
   routeOverview: {
+    position: 'absolute',
+    top: 80,
+    left: 16,
+    right: 16,
     padding: SPACING.lg,
-    backgroundColor: COLORS.card,
+    backgroundColor: '#FFFFFF',
     borderRadius: BORDER_RADIUS.lg,
-    marginBottom: SPACING.lg,
     borderWidth: 2,
     borderColor: COLORS.primary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+    zIndex: 10,
   },
   routeHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: SPACING.md,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
   },
   routeEndpoint: {
     flexDirection: 'row',
@@ -207,65 +306,47 @@ const styles = StyleSheet.create({
   },
   routeStats: {
     alignItems: 'center',
-    marginBottom: SPACING.md,
   },
   routeStatText: {
-    fontSize: FONT_SIZE.lg,
+    fontSize: FONT_SIZE.base,
     fontWeight: '600',
     color: COLORS.primary,
   },
-  animatedLine: {
-    height: 4,
-    backgroundColor: COLORS.border,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  animatedProgress: {
-    height: '100%',
-    backgroundColor: COLORS.primary,
-    borderRadius: 2,
-  },
-  buildingsList: {
+  map: {
     flex: 1,
   },
-  buildingItem: {
-    flexDirection: 'row',
+  markerContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
     alignItems: 'center',
-    padding: SPACING.md,
-    backgroundColor: COLORS.card,
-    borderRadius: BORDER_RADIUS.md,
-    marginBottom: SPACING.sm,
-    gap: SPACING.md,
-  },
-  buildingItemActive: {
     borderWidth: 2,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  markerHighlighted: {
     borderColor: COLORS.primary,
-    backgroundColor: COLORS.primaryPale,
+    borderWidth: 3,
+    transform: [{ scale: 1.2 }],
   },
-  buildingDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  markerCurrent: {
+    borderColor: '#10B981',
+    borderWidth: 3,
+    backgroundColor: '#ECFDF5',
   },
-  buildingContent: {
-    flex: 1,
-  },
-  buildingName: {
-    fontSize: FONT_SIZE.base,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  buildingCategory: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
-  },
-  buildingEmoji: {
-    fontSize: 20,
+  markerEmoji: {
+    fontSize: 18,
   },
   controls: {
     position: 'absolute',
-    right: 24,
-    bottom: 180,
+    right: 16,
+    bottom: 24,
     gap: 12,
   },
   controlButton: {
