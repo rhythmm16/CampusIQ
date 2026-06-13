@@ -1,3 +1,4 @@
+import 'react-native-get-random-values';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -5,7 +6,10 @@ import { Message, ChatResponse, AccessibilityProfile } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import * as Haptics from 'expo-haptics';
 import { Building, RouteData } from '@/types';
-import { BUILDINGS, PATHS } from '@/constants/campus';
+import { BUILDINGS } from '@/constants/campus';
+import { calculateRouteOptions, getRouteFromOptions, primaryRouteKey } from '@/services/routing';
+import { formatPulseSummary } from '@/services/pulse';
+import { api, isMockApi } from '@/services/api';
 import { useMapStore } from './mapStore';
 import { useUserStore } from './userStore';
 
@@ -26,81 +30,14 @@ const generateRouteData = (from: Building, to: Building, profile: AccessibilityP
   accessible?: RouteData;
   scenic?: RouteData;
 } => {
-  const needsAccessible = profile.wheelchair || profile.avoid_stairs || profile.elevator_required;
+  // Real graph traversal (Dijkstra) over the campus path network with
+  // accessibility-aware edge costs and event-blocked path handling.
+  return calculateRouteOptions(from.building_id, to.building_id, profile);
+};
 
-  const baseDistance = Math.round(
-    Math.sqrt(
-      Math.pow((to.coordinates.lat - from.coordinates.lat) * 111000, 2) +
-      Math.pow((to.coordinates.lng - from.coordinates.lng) * 111000, 2)
-    )
-  );
-
-  const walkTime = Math.round(baseDistance / 80);
-
-  const waypoints = [
-    from.coordinates,
-    {
-      lat: (from.coordinates.lat + to.coordinates.lat) / 2,
-      lng: (from.coordinates.lng + to.coordinates.lng) / 2,
-    },
-    to.coordinates,
-  ];
-
-  const fastestRoute: RouteData = {
-    route_type: 'fastest',
-    from_building: from,
-    to_building: to,
-    steps: [
-      `Start at ${from.name}`,
-      `Head ${to.coordinates.lat > from.coordinates.lat ? 'north' : 'south'} on the main path`,
-      `Continue past the ${from.marker_emoji} landmark`,
-      `Arrive at ${to.name}`,
-    ],
-    segments: [
-      {
-        from: from.building_id,
-        to: to.building_id,
-        distance_meters: baseDistance,
-        walk_time_minutes: walkTime,
-        path_type: 'main_road',
-        is_accessible: true,
-      },
-    ],
-    waypoints,
-    total_distance_meters: baseDistance,
-    total_walk_time_minutes: walkTime,
-  };
-
-  const accessibleRoute: RouteData = needsAccessible
-    ? {
-        ...fastestRoute,
-        route_type: 'accessible',
-        total_distance_meters: Math.round(baseDistance * 1.2),
-        total_walk_time_minutes: Math.round(walkTime * 1.3),
-        steps: [
-          `Start at ${from.name}`,
-          `Take the accessible ramp (step-free)`,
-          `Follow the marked accessible path`,
-          `Use elevator if going to upper floors`,
-          `Arrive at ${to.name} via accessible entrance`,
-        ],
-        accessibility_notes: 'Step-free route with ramp access. Elevator available for multi-floor destinations.',
-      }
-    : fastestRoute;
-
-  const scenicRoute: RouteData = {
-    ...fastestRoute,
-    route_type: 'scenic',
-    total_distance_meters: Math.round(baseDistance * 1.3),
-    total_walk_time_minutes: Math.round(walkTime * 1.4),
-    accessibility_notes: 'Landscaped garden route with shaded walkways.',
-  };
-
-  return {
-    fastest: fastestRoute,
-    accessible: accessibleRoute,
-    scenic: scenicRoute,
-  };
+const getRouteOrigin = (): Building => {
+  const originId = useMapStore.getState().currentLocationId ?? 'main_gate';
+  return BUILDINGS.find((b) => b.building_id === originId) ?? BUILDINGS[0];
 };
 
 const findBuilding = (query: string): Building | undefined => {
@@ -160,17 +97,57 @@ export const useChatStore = create<ChatState>()(
 
         const toBuilding = findBuilding(msgLower);
 
+        if (
+          msgLower.includes('pulse') ||
+          msgLower.includes('queue') ||
+          msgLower.includes('crowd') ||
+          msgLower.includes('parking') ||
+          msgLower.includes('seats')
+        ) {
+          return {
+            response: `Live Campus Pulse:\n\n${formatPulseSummary()}\n\nI'll factor this into your route suggestions — e.g. take the east path when the cafeteria west entrance has a long queue.`,
+            route_data: null,
+            buildings_to_highlight: ['cafeteria', 'library', 'parking_p1'],
+            session_id: get().sessionId,
+            has_route: false,
+          };
+        }
+
         if (msgLower.includes('how do i get to') || msgLower.includes('directions to') || msgLower.includes('way to')) {
           if (toBuilding) {
-            const fromBuilding = BUILDINGS[0];
+            const fromBuilding = getRouteOrigin();
             const routeData = generateRouteData(fromBuilding, toBuilding, profile);
+            const primaryKey = primaryRouteKey(profile);
+            const primary = getRouteFromOptions(routeData, profile);
+
+            if (!primary) {
+              return {
+                response: `I couldn't find a route to ${toBuilding.name} right now. A path may be blocked by an event. Try another destination or ask me about alternatives.`,
+                route_data: null,
+                buildings_to_highlight: [toBuilding.building_id],
+                session_id: get().sessionId,
+                has_route: false,
+              };
+            }
+
+            const pulseNote =
+              primary.pulse_warnings && primary.pulse_warnings.length > 0
+                ? `📡 ${primary.pulse_warnings.join(' ')}\n\n`
+                : '';
+            const weatherNote = primary.weather_note ? `🌧️ ${primary.weather_note}\n\n` : '';
+
             return {
               response: `I'll help you get to ${toBuilding.name}!\n\n${toBuilding.marker_emoji} ${fromBuilding.short_name} → ${toBuilding.short_name}\n\n` +
-                `Distance: ${routeData.fastest?.total_distance_meters}m (${routeData.fastest?.total_walk_time_minutes} min walk)\n\n` +
-                (hasAccessibilityNeed || profile.wheelchair || profile.avoid_stairs
-                  ? 'I\'ve selected an accessible route for you.\n\n'
+                `Distance: ${primary.total_distance_meters}m (${primary.total_walk_time_minutes} min walk)\n\n` +
+                (primaryKey === 'quiet' ? "Using a sensory-quiet route away from noisy zones.\n\n" : '') +
+                (primaryKey === 'weather_shielded' ? 'Using a weather-shielded route with covered paths.\n\n' : '') +
+                (primaryKey === 'accessible' ? "I've selected a step-free accessible route for you.\n\n" : '') +
+                pulseNote +
+                weatherNote +
+                (primary.event_warnings && primary.event_warnings.length > 0
+                  ? `⚠️ ${primary.event_warnings.join(' ')}\n\n`
                   : '') +
-                `Want to see this on the map?`,
+                `Want to see this on the map? Tap turn-by-turn for voice guidance.`,
               route_data: routeData,
               buildings_to_highlight: [toBuilding.building_id],
               session_id: get().sessionId,
@@ -251,7 +228,7 @@ export const useChatStore = create<ChatState>()(
 
         if (msgLower.includes('main gate') || msgLower.includes('arrived') || msgLower.includes('just arrived')) {
           return {
-            response: 'Welcome to CampusWay AI! I\'m here to help you navigate the campus.\n\nYou\'re currently at the Main Gate. I can help you with:\n\n• Finding buildings and getting directions\n• Checking operating hours\n• Finding food, medical services, parking\n• Accessibility-aware routing\n\nWhere would you like to go?',
+            response: 'Welcome to CampusIQ! I\'m here to help you navigate the campus.\n\nYou\'re currently at the Main Gate. I can help you with:\n\n• Finding buildings and getting directions\n• Checking operating hours\n• Finding food, medical services, parking\n• Accessibility-aware routing\n\nWhere would you like to go?',
             route_data: null,
             buildings_to_highlight: ['main_gate'],
             session_id: get().sessionId,
@@ -305,7 +282,24 @@ export const useChatStore = create<ChatState>()(
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
         try {
-          const response = await get().getAIMockResponse(content);
+          let response: ChatResponse;
+
+          if (!isMockApi && get().isConnected) {
+            try {
+              const { accessibilityProfile, deviceId } = useUserStore.getState();
+              response = await api.sendChatMessage(
+                get().sessionId,
+                content,
+                deviceId,
+                accessibilityProfile
+              );
+            } catch (apiError) {
+              console.warn('Backend unavailable, using local agent:', apiError);
+              response = await get().getAIMockResponse(content);
+            }
+          } else {
+            response = await get().getAIMockResponse(content);
+          }
 
           const aiMessage: Message = {
             id: uuidv4(),
@@ -320,8 +314,21 @@ export const useChatStore = create<ChatState>()(
             isLoading: false,
           }));
 
-          if (response.has_route && response.route_data?.fastest) {
-            useMapStore.getState().setActiveRoute(response.route_data.fastest);
+          if (response.has_route && response.route_data) {
+            const profile = useUserStore.getState().accessibilityProfile;
+            const primaryRoute = getRouteFromOptions(response.route_data, profile);
+            const tabIndex = primaryRoute
+              ? ['fastest', 'accessible', 'quiet', 'weather_shielded', 'scenic'].indexOf(
+                  primaryRoute.route_type
+                )
+              : 0;
+
+            useMapStore.getState().setRouteOptions(response.route_data);
+            if (tabIndex >= 0) {
+              useMapStore.getState().selectRouteOption(tabIndex);
+            } else if (primaryRoute) {
+              useMapStore.getState().setActiveRoute(primaryRoute);
+            }
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           }
 
@@ -330,7 +337,21 @@ export const useChatStore = create<ChatState>()(
           }
         } catch (error) {
           console.error('Error sending message:', error);
-          set({ isLoading: false });
+
+          const errorMessage: Message = {
+            id: uuidv4(),
+            role: 'assistant',
+            content:
+              "Sorry, I couldn't process that just now. Please check your connection and try again.",
+            timestamp: new Date(),
+          };
+
+          set((state) => ({
+            messages: [...state.messages, errorMessage],
+            isLoading: false,
+          }));
+
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         }
       },
 
@@ -357,7 +378,7 @@ export const useChatStore = create<ChatState>()(
       setConnected: (val: boolean) => set({ isConnected: val }),
     }),
     {
-      name: 'campusway-chat-storage',
+      name: 'campusiq-chat-storage',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         messages: state.messages,

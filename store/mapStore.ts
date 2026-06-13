@@ -11,9 +11,13 @@ interface MapState {
     fastest?: RouteData;
     accessible?: RouteData;
     scenic?: RouteData;
+    quiet?: RouteData;
+    weather_shielded?: RouteData;
   } | null;
   selectedRouteIndex: number;
   highlightedBuildingId: string | null;
+  /** Set by QR scan or Snap & Navigate — used as route origin */
+  currentLocationId: string | null;
   mapRegion: typeof INITIAL_MAP_REGION;
   selectedBuilding: Building | null;
   isMapReady: boolean;
@@ -24,6 +28,7 @@ interface MapState {
   selectRouteOption: (index: number) => void;
   highlightBuilding: (id: string | null) => void;
   selectBuilding: (building: Building | null) => void;
+  setCurrentLocation: (id: string | null) => void;
   clearRoute: () => void;
   setMapRegion: (region: typeof INITIAL_MAP_REGION) => void;
   setMapReady: (ready: boolean) => void;
@@ -32,6 +37,14 @@ interface MapState {
   filterByCategory: (category: string) => Building[];
 }
 
+export const ROUTE_TAB_KEYS = [
+  'fastest',
+  'accessible',
+  'quiet',
+  'weather_shielded',
+  'scenic',
+] as const;
+
 export const useMapStore = create<MapState>()((set, get) => ({
   buildings: BUILDINGS,
   events: SAMPLE_EVENTS,
@@ -39,17 +52,18 @@ export const useMapStore = create<MapState>()((set, get) => ({
   routeOptions: null,
   selectedRouteIndex: 0,
   highlightedBuildingId: null,
+  currentLocationId: null,
   mapRegion: INITIAL_MAP_REGION,
   selectedBuilding: null,
   isMapReady: false,
 
   loadBuildings: async () => {
     try {
-      const cached = await AsyncStorage.getItem('campusway-buildings');
+      const cached = await AsyncStorage.getItem('campusiq-buildings');
       if (cached) {
         set({ buildings: JSON.parse(cached) });
       } else {
-        await AsyncStorage.setItem('campusway-buildings', JSON.stringify(BUILDINGS));
+        await AsyncStorage.setItem('campusiq-buildings', JSON.stringify(BUILDINGS));
         set({ buildings: BUILDINGS });
       }
     } catch (error) {
@@ -78,13 +92,16 @@ export const useMapStore = create<MapState>()((set, get) => ({
     const { routeOptions } = get();
     if (!routeOptions) return;
 
-    const keys = ['fastest', 'accessible', 'scenic'] as const;
-    const selectedKey = keys[index];
-    const selectedRoute = routeOptions[selectedKey];
+    const selectedKey = ROUTE_TAB_KEYS[index];
+    const selectedRoute = selectedKey ? routeOptions[selectedKey] : undefined;
 
     if (selectedRoute) {
       set({ selectedRouteIndex: index, activeRoute: selectedRoute });
     }
+  },
+
+  setCurrentLocation: (id: string | null) => {
+    set({ currentLocationId: id });
   },
 
   highlightBuilding: (id: string | null) => {
