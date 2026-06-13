@@ -9,8 +9,11 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useUserStore, useChatStore } from '@/store';
+import type { LanguageCode } from '@/store/userStore';
+import { AccessibilityProfile } from '@/types';
 import { AccessibilityProfileModal } from '@/components/ui';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants/colors';
 import {
@@ -24,6 +27,7 @@ import {
   CheckCircle,
   Wifi,
   CircleDot,
+  Languages,
 } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import * as Haptics from 'expo-haptics';
@@ -31,59 +35,75 @@ import { api } from '@/services/api';
 
 interface ToggleItem {
   key: keyof AccessibilityProfile;
-  label: string;
-  description: string;
+  labelKey: string;
+  descriptionKey: string;
   icon: typeof Accessibility;
 }
 
 const TOGGLE_ITEMS: ToggleItem[] = [
   {
     key: 'wheelchair',
-    label: 'Wheelchair User',
-    description: 'I use a wheelchair or mobility aid',
+    labelKey: 'profile.wheelchair',
+    descriptionKey: 'profile.wheelchairDesc',
     icon: Accessibility,
   },
   {
     key: 'visual_impairment',
-    label: 'Visual Impairment',
-    description: 'I need audio guidance or high contrast',
+    labelKey: 'profile.visualImpairment',
+    descriptionKey: 'profile.visualImpairmentDesc',
     icon: Eye,
   },
   {
     key: 'hearing_impairment',
-    label: 'Hearing Impairment',
-    description: 'I prefer visual cues over audio',
+    labelKey: 'profile.hearingImpairment',
+    descriptionKey: 'profile.hearingImpairmentDesc',
     icon: Ear,
   },
   {
     key: 'elevator_required',
-    label: 'Elevator Required',
-    description: 'I cannot use stairs',
+    labelKey: 'profile.elevatorRequired',
+    descriptionKey: 'profile.elevatorRequiredDesc',
     icon: ArrowUpCircle,
   },
   {
     key: 'avoid_stairs',
-    label: 'Avoid Stairs',
-    description: 'Prefer step-free routes when possible',
+    labelKey: 'profile.avoidStairs',
+    descriptionKey: 'profile.avoidStairsDesc',
     icon: Footprints,
   },
   {
+    key: 'sensory_friendly',
+    labelKey: 'profile.sensoryFriendly',
+    descriptionKey: 'profile.sensoryFriendlyDesc',
+    icon: Ear,
+  },
+  {
     key: 'slow_walker',
-    label: 'Slow Walker',
-    description: 'Prefer shorter walking distances',
+    labelKey: 'profile.slowWalker',
+    descriptionKey: 'profile.slowWalkerDesc',
     icon: Footprints,
   },
 ];
 
+const LANGUAGE_OPTIONS: { code: LanguageCode; labelKey: string; native: string }[] = [
+  { code: 'en', labelKey: 'profile.languageEnglish', native: 'English' },
+  { code: 'hi', labelKey: 'profile.languageHindi', native: 'हिंदी' },
+  { code: 'pa', labelKey: 'profile.languagePunjabi', native: 'ਪੰਜਾਬੀ' },
+];
+
 export default function ProfileScreen() {
+  const { t } = useTranslation();
   const {
     accessibilityProfile,
     updateProfile,
     deviceId,
     hasCompletedOnboarding,
+    language,
+    setLanguage,
   } = useUserStore();
   const { sessionId, messages, clearHistory } = useChatStore();
   const [backendStatus, setBackendStatus] = useState<'checking' | 'ok' | 'error'>('checking');
+  const [backendInfo, setBackendInfo] = useState<{ provider?: string; model?: string; llm?: boolean }>({});
 
   useEffect(() => {
     checkBackendHealth();
@@ -91,9 +111,11 @@ export default function ProfileScreen() {
 
   const checkBackendHealth = async () => {
     try {
-      await api.checkHealth();
+      const health = await api.checkHealth();
+      setBackendInfo({ provider: health.provider, model: health.model, llm: health.llm });
       setBackendStatus('ok');
     } catch (error) {
+      setBackendInfo({});
       setBackendStatus('error');
     }
   };
@@ -103,21 +125,26 @@ export default function ProfileScreen() {
     updateProfile({ [key]: value });
   };
 
+  const handleLanguageChange = (code: LanguageCode) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setLanguage(code);
+  };
+
   const handleClearHistory = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
-      'Clear Conversation',
-      'This will delete all your chat history. Are you sure?',
+      t('profile.clearConversation'),
+      t('profile.clearConversationMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Clear',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () => {
             clearHistory();
             Toast.show({
               type: 'success',
-              text1: 'Conversation cleared',
+              text1: t('profile.conversationCleared'),
               visibilityTime: 2000,
             });
           },
@@ -141,8 +168,8 @@ export default function ProfileScreen() {
             <Icon size={18} color={isEnabled ? COLORS.primary : COLORS.textMuted} />
           </View>
           <View>
-            <Text style={styles.toggleLabel}>{item.label}</Text>
-            <Text style={styles.toggleDescription}>{item.description}</Text>
+            <Text style={styles.toggleLabel}>{t(item.labelKey)}</Text>
+            <Text style={styles.toggleDescription}>{t(item.descriptionKey)}</Text>
           </View>
         </View>
         <Switch
@@ -158,12 +185,13 @@ export default function ProfileScreen() {
   const hasActiveProfile =
     accessibilityProfile.wheelchair ||
     accessibilityProfile.elevator_required ||
-    accessibilityProfile.avoid_stairs;
+    accessibilityProfile.avoid_stairs ||
+    accessibilityProfile.sensory_friendly;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Profile</Text>
+        <Text style={styles.headerTitle}>{t('profile.myProfile')}</Text>
       </View>
 
       <ScrollView
@@ -173,10 +201,10 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Accessibility size={20} color={COLORS.primary} />
-            <Text style={styles.sectionTitle}>Accessibility Needs</Text>
+            <Text style={styles.sectionTitle}>{t('profile.accessibilityNeeds')}</Text>
           </View>
           <Text style={styles.sectionSubtitle}>
-            CampusWay AI will automatically apply these settings to all route recommendations
+            {t('profile.accessibilitySubtitle')}
           </Text>
 
           <View style={styles.togglesList}>
@@ -186,23 +214,54 @@ export default function ProfileScreen() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
+            <Languages size={20} color={COLORS.primary} />
+            <Text style={styles.sectionTitle}>{t('profile.language')}</Text>
+          </View>
+          <Text style={styles.sectionSubtitle}>
+            {t('profile.languageSubtitle')}
+          </Text>
+          <View style={styles.languageList}>
+            {LANGUAGE_OPTIONS.map((opt) => {
+              const isActive = language === opt.code;
+              return (
+                <TouchableOpacity
+                  key={opt.code}
+                  style={[styles.languageItem, isActive && styles.languageItemActive]}
+                  onPress={() => handleLanguageChange(opt.code)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: isActive }}
+                  accessibilityLabel={opt.label}
+                >
+                  <View>
+                    <Text style={styles.languageNative}>{opt.native}</Text>
+                    <Text style={styles.languageLabel}>{opt.label}</Text>
+                  </View>
+                  {isActive && <CheckCircle size={20} color={COLORS.primary} />}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
             <Info size={20} color={COLORS.primary} />
-            <Text style={styles.sectionTitle}>Session Info</Text>
+            <Text style={styles.sectionTitle}>{t('profile.sessionInfo')}</Text>
           </View>
 
           <View style={styles.infoCard}>
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Device ID</Text>
+              <Text style={styles.infoLabel}>{t('profile.deviceId')}</Text>
               <Text style={styles.infoValue}>{deviceId.slice(0, 8)}...</Text>
             </View>
             <View style={styles.infoDivider} />
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Messages Sent</Text>
+              <Text style={styles.infoLabel}>{t('profile.messagesSent')}</Text>
               <Text style={styles.infoValue}>{messages.filter((m) => m.role === 'user').length}</Text>
             </View>
             <View style={styles.infoDivider} />
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Backend Status</Text>
+              <Text style={styles.infoLabel}>{t('profile.backendStatus')}</Text>
               <View style={styles.statusRow}>
                 <View
                   style={[
@@ -213,28 +272,42 @@ export default function ProfileScreen() {
                 />
                 <Text style={styles.statusText}>
                   {backendStatus === 'checking'
-                    ? 'Checking...'
+                    ? t('profile.checking')
                     : backendStatus === 'ok'
-                    ? 'Connected'
-                    : 'Offline'}
+                    ? t('profile.connected')
+                    : t('profile.offlineStatus')}
                 </Text>
               </View>
             </View>
+            {backendStatus === 'ok' && backendInfo.provider && (
+              <>
+                <View style={styles.infoDivider} />
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>{t('profile.aiProvider')}</Text>
+                  <Text style={styles.infoValue}>
+                    {backendInfo.llm
+                      ? `${backendInfo.provider}${backendInfo.model ? ` · ${backendInfo.model}` : ''}`
+                      : backendInfo.provider === 'local'
+                      ? t('profile.local')
+                      : t('profile.fallback')}
+                  </Text>
+                </View>
+              </>
+            )}
           </View>
 
           <TouchableOpacity style={styles.clearButton} onPress={handleClearHistory}>
             <Trash2 size={18} color={COLORS.danger} />
-            <Text style={styles.clearButtonText}>Clear Conversation History</Text>
+            <Text style={styles.clearButtonText}>{t('profile.clearConversationHistory')}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About CampusWay AI</Text>
+          <Text style={styles.sectionTitle}>{t('profile.about')}</Text>
           <Text style={styles.aboutText}>
-            CampusWay AI is an intelligent campus navigation assistant that provides
-            accessibility-aware routing and real-time building information.
+            {t('profile.aboutText')}
           </Text>
-          <Text style={styles.versionText}>Version 1.0.0</Text>
+          <Text style={styles.versionText}>{t('profile.version')} 1.0.0</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -286,6 +359,32 @@ const styles = StyleSheet.create({
   },
   togglesList: {
     gap: SPACING.sm,
+  },
+  languageList: {
+    gap: SPACING.sm,
+  },
+  languageItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: SPACING.md,
+    backgroundColor: COLORS.card,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  languageItemActive: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primaryPale,
+  },
+  languageNative: {
+    fontSize: FONT_SIZE.base,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+  },
+  languageLabel: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textSecondary,
   },
   toggleItem: {
     flexDirection: 'row',

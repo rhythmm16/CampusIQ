@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, KeyboardAvoidingView, Platform, Image, ScrollView, TouchableOpacity, } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useChatStore, useUserStore, useMapStore } from '@/store';
 import { useChat } from '@/hooks';
@@ -9,11 +10,12 @@ import { ChatBubble, ChatInput, TypingIndicator, QuickActions } from '@/componen
 import { OfflineBanner, EventBanner, AccessibilityProfileModal } from '@/components/ui';
 import { COLORS, FONT_SIZE, SPACING } from '@/constants/colors';
 import { SAMPLE_EVENTS, BUILDINGS } from '@/constants/campus';
-import { Settings, Accessibility } from 'lucide-react-native';
+import { Settings, Accessibility, QrCode, TriangleAlert, Camera } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 
 export default function ChatScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const flatListRef = useRef<FlatList>(null);
   const { messages, isLoading, sendMessage, isConnected, sessionId } = useChat();
   const { accessibilityProfile, hasCompletedOnboarding } = useUserStore();
@@ -46,15 +48,16 @@ export default function ChatScreen() {
   const hasActiveAccessibilityNeeds =
     accessibilityProfile.wheelchair ||
     accessibilityProfile.elevator_required ||
-    accessibilityProfile.avoid_stairs;
+    accessibilityProfile.avoid_stairs ||
+    accessibilityProfile.sensory_friendly;
 
   const renderWelcomeState = () => (
     <View style={styles.welcomeContainer}>
       <Animated.View entering={FadeIn.duration(400)} style={styles.welcomeContent}>
-        <Text style={styles.welcomeEmoji}>🗺️</Text>
-        <Text style={styles.welcomeTitle}>Hi! I'm CampusWay AI</Text>
+        <Text style={styles.welcomeEmoji}>🎓</Text>
+        <Text style={styles.welcomeTitle}>{t('chat.welcome')}</Text>
         <Text style={styles.welcomeText}>
-          Ask me anything about navigating the campus, finding buildings, or getting directions.
+          {t('chat.welcomeSubtitle')}
         </Text>
       </Animated.View>
     </View>
@@ -73,15 +76,18 @@ export default function ChatScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <KeyboardAvoidingView
         style={styles.keyboardView}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={styles.headerTitle}>CampusWay AI</Text>
+            <View style={styles.titleContainer}>
+              <Text style={styles.headerEmoji}>🎓</Text>
+              <Text style={styles.headerTitle}>{t('common.appName')}</Text>
+            </View>
             <View style={styles.statusContainer}>
               <View style={[styles.statusIndicator, isConnected ? styles.online : styles.offline]} />
-              <Text style={styles.statusText}>{isConnected ? 'Online' : 'Offline'}</Text>
+              <Text style={styles.statusText}>{isConnected ? t('common.online') : t('common.offlineMode')}</Text>
             </View>
           </View>
           <View style={styles.headerRight}>
@@ -90,8 +96,32 @@ export default function ChatScreen() {
                 <Accessibility size={18} color={COLORS.accent} />
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={styles.settingsButton} onPress={handleProfilePress}>
-              <Settings size={22} color={COLORS.textSecondary} />
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => router.push('/snap')}
+              accessibilityRole="button"
+              accessibilityLabel={t('snap.title')}
+            >
+              <Camera size={20} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => router.push('/scan')}
+              accessibilityRole="button"
+              accessibilityLabel={t('scan.title')}
+            >
+              <QrCode size={20} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => router.push('/emergency')}
+              accessibilityRole="button"
+              accessibilityLabel={t('emergency.title')}
+            >
+              <TriangleAlert size={20} color={COLORS.danger} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconButton} onPress={handleProfilePress}>
+              <Settings size={20} color={COLORS.textSecondary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -161,12 +191,22 @@ const styles = StyleSheet.create({
   },
   headerLeft: {
     flexDirection: 'column',
+    flex: 1,
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerEmoji: {
+    fontSize: 24,
   },
   headerTitle: {
-    fontSize: FONT_SIZE.xl,
-    fontWeight: '700',
+    fontSize: FONT_SIZE['2xl'],
+    fontWeight: '800',
     color: COLORS.primary,
     fontFamily: 'Inter-Bold',
+    letterSpacing: -0.5,
   },
   statusContainer: {
     flexDirection: 'row',
@@ -192,22 +232,23 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.md,
+    gap: SPACING.xs,
   },
   a11yIndicator: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#ECFDF5',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  settingsButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  iconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: COLORS.surface,
   },
   welcomeContainer: {
     flex: 1,

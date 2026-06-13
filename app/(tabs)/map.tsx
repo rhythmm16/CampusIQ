@@ -43,7 +43,6 @@ export default function MapScreen() {
     highlightBuilding,
     selectBuilding,
     clearRoute,
-    clearSelection,
   } = useMapStore();
   const { sendMessage } = useChatStore();
 

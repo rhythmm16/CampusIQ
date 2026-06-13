@@ -1,13 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Dimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import Animated, { FadeIn, SlideInRight } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, SlideInRight } from 'react-native-reanimated';
 import { AccessibilityBadges, HoursDisplay } from '@/components/buildings';
 import { useBuildings } from '@/hooks';
 import { useChatStore } from '@/store';
@@ -21,7 +22,12 @@ import {
   Building2,
   AlertCircle,
   Calendar,
+  Navigation,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react-native';
+
+const { width } = Dimensions.get('window');
 
 const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
@@ -30,6 +36,9 @@ export default function BuildingDetailScreen() {
   const router = useRouter();
   const { getBuildingById } = useBuildings();
   const { sendMessage } = useChatStore();
+  
+  const [showAllHours, setShowAllHours] = useState(false);
+  const [showAllServices, setShowAllServices] = useState(false);
 
   const building = getBuildingById(id || '');
 
@@ -62,6 +71,8 @@ export default function BuildingDetailScreen() {
     sendMessage(`How do I get to ${building.name}?`);
     router.push('/(tabs)');
   };
+  
+  const displayedServices = showAllServices ? building.services : building.services.slice(0, 4);
 
   return (
     <View style={styles.container}>
@@ -70,74 +81,149 @@ export default function BuildingDetailScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.hero}>
-          <Text style={styles.emoji}>{building.marker_emoji}</Text>
-          <View style={styles.heroContent}>
-            <Text style={styles.name}>{building.name}</Text>
-            <View style={styles.statusRow}>
-              <View
-                style={[
-                  styles.statusPill,
-                  isOpen ? styles.statusPillOpen : styles.statusPillClosed,
-                ]}
-              >
-                <Text
+        {/* Hero Section with Gradient Effect */}
+        <Animated.View entering={FadeIn} style={styles.heroGradient}>
+          <View style={styles.hero}>
+            <View style={styles.emojiCircle}>
+              <Text style={styles.emoji}>{building.marker_emoji}</Text>
+            </View>
+            <View style={styles.heroContent}>
+              <Text style={styles.name}>{building.name}</Text>
+              <View style={styles.metaRow}>
+                <View
                   style={[
-                    styles.statusText,
-                    isOpen ? styles.statusTextOpen : styles.statusTextClosed,
+                    styles.statusBadge,
+                    isOpen ? styles.statusBadgeOpen : styles.statusBadgeClosed,
                   ]}
                 >
-                  {isOpen ? 'Open Now' : 'Closed'}
-                </Text>
-              </View>
-              <View style={styles.categoryPill}>
-                <Text style={styles.categoryText}>
-                  {building.category.charAt(0).toUpperCase() + building.category.slice(1)}
-                </Text>
+                  <View
+                    style={[
+                      styles.statusDot,
+                      isOpen ? styles.statusDotOpen : styles.statusDotClosed,
+                    ]}
+                  />
+                  <Text
+                    style={[
+                      styles.statusText,
+                      isOpen ? styles.statusTextOpen : styles.statusTextClosed,
+                    ]}
+                  >
+                    {isOpen ? 'Open Now' : 'Closed'}
+                  </Text>
+                </View>
+                <View style={styles.categoryBadge}>
+                  <Text style={styles.categoryText}>
+                    {building.category.charAt(0).toUpperCase() + building.category.slice(1)}
+                  </Text>
+                </View>
               </View>
             </View>
           </View>
-        </View>
+        </Animated.View>
 
-        <Animated.View entering={FadeIn.delay(100)} style={styles.section}>
-          <Text style={styles.sectionTitle}>About</Text>
+        {/* Quick Actions */}
+        <Animated.View entering={FadeInDown.delay(100)} style={styles.quickActions}>
+          <TouchableOpacity style={styles.actionButton} onPress={handleGetDirections}>
+            <Navigation size={20} color={COLORS.primary} />
+            <Text style={styles.actionButtonText}>Directions</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton}>
+            <MapPin size={20} color={COLORS.primary} />
+            <Text style={styles.actionButtonText}>View on Map</Text>
+          </TouchableOpacity>
+        </Animated.View>
+
+        {/* About Section */}
+        <Animated.View entering={FadeInDown.delay(200)} style={styles.card}>
+          <Text style={styles.cardTitle}>About</Text>
           <Text style={styles.description}>{building.description}</Text>
         </Animated.View>
 
-        <Animated.View entering={FadeIn.delay(200)} style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <AccessibilityBadges accessibility={building.accessibility} showUnavailable />
-          </View>
-        </Animated.View>
+        {/* Accessibility Features */}
+        {(building.accessibility.wheelchair_accessible || 
+          building.accessibility.has_elevator || 
+          building.accessibility.has_ramps) && (
+          <Animated.View entering={FadeInDown.delay(250)} style={styles.card}>
+            <Text style={styles.cardTitle}>Accessibility</Text>
+            <AccessibilityBadges accessibility={building.accessibility} showUnavailable={false} />
+          </Animated.View>
+        )}
 
-        <Animated.View entering={FadeIn.delay(300)} style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Building2 size={20} color={COLORS.primary} />
-            <Text style={styles.sectionTitle}>Services</Text>
-          </View>
-          <View style={styles.servicesList}>
-            {building.services.map((service, index) => (
-              <View key={index} style={styles.serviceItem}>
-                <View style={styles.serviceDot} />
-                <Text style={styles.serviceText}>{service}</Text>
+        {/* Services - Compact Grid */}
+        {building.services.length > 0 && (
+          <Animated.View entering={FadeInDown.delay(300)} style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardTitleRow}>
+                <Building2 size={20} color={COLORS.primary} />
+                <Text style={styles.cardTitle}>Services & Facilities</Text>
               </View>
-            ))}
+              {building.services.length > 4 && (
+                <TouchableOpacity 
+                  onPress={() => {
+                    setShowAllServices(!showAllServices);
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
+                >
+                  {showAllServices ? (
+                    <ChevronUp size={20} color={COLORS.primary} />
+                  ) : (
+                    <ChevronDown size={20} color={COLORS.primary} />
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+            <View style={styles.servicesGrid}>
+              {displayedServices.map((service, index) => (
+                <View key={index} style={styles.serviceChip}>
+                  <Text style={styles.serviceChipText}>{service}</Text>
+                </View>
+              ))}
+            </View>
+            {!showAllServices && building.services.length > 4 && (
+              <Text style={styles.moreText}>+{building.services.length - 4} more</Text>
+            )}
+          </Animated.View>
+        )}
+
+        {/* Operating Hours - Compact */}
+        <Animated.View entering={FadeInDown.delay(350)} style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardTitleRow}>
+              <Clock size={20} color={COLORS.primary} />
+              <Text style={styles.cardTitle}>Hours</Text>
+            </View>
+            <TouchableOpacity 
+              onPress={() => {
+                setShowAllHours(!showAllHours);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+            >
+              {showAllHours ? (
+                <ChevronUp size={20} color={COLORS.primary} />
+              ) : (
+                <ChevronDown size={20} color={COLORS.primary} />
+              )}
+            </TouchableOpacity>
           </View>
+          
+          {!showAllHours ? (
+            <View style={styles.todayHours}>
+              <Text style={styles.todayLabel}>Today</Text>
+              <Text style={styles.todayTime}>
+                {hours.is_closed ? 'Closed' : `${hours.open} - ${hours.close}`}
+              </Text>
+            </View>
+          ) : (
+            <HoursDisplay operatingHours={building.operating_hours} />
+          )}
         </Animated.View>
 
-        <Animated.View entering={FadeIn.delay(400)} style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Clock size={20} color={COLORS.primary} />
-            <Text style={styles.sectionTitle}>Opening Hours</Text>
-          </View>
-          <HoursDisplay operatingHours={building.operating_hours} />
-        </Animated.View>
-
+        {/* Today's Events */}
         {todayEvents.length > 0 && (
-          <Animated.View entering={FadeIn.delay(500)} style={styles.section}>
-            <View style={styles.sectionHeader}>
+          <Animated.View entering={FadeInDown.delay(400)} style={styles.card}>
+            <View style={styles.cardTitleRow}>
               <Calendar size={20} color={COLORS.warning} />
-              <Text style={styles.sectionTitle}>Today's Events</Text>
+              <Text style={styles.cardTitle}>Today's Events</Text>
             </View>
             <View style={styles.eventsList}>
               {todayEvents.map((event) => (
@@ -155,9 +241,10 @@ export default function BuildingDetailScreen() {
                     )}
                   </View>
                   <Text style={styles.eventRoom}>{event.room}</Text>
-                  <Text style={styles.eventDescription}>{event.description}</Text>
-                  {event.alternate_route_note && (
-                    <Text style={styles.eventNote}>{event.alternate_route_note}</Text>
+                  {event.affects_navigation && event.alternate_route_note && (
+                    <View style={styles.eventWarning}>
+                      <Text style={styles.eventNote}>{event.alternate_route_note}</Text>
+                    </View>
                   )}
                 </View>
               ))}
@@ -165,24 +252,15 @@ export default function BuildingDetailScreen() {
           </Animated.View>
         )}
 
-        <View style={styles.locationSection}>
-          <View style={styles.sectionHeader}>
-            <MapPin size={20} color={COLORS.primary} />
-            <Text style={styles.sectionTitle}>Location</Text>
-          </View>
-          <Text style={styles.coordsText}>
-            {building.coordinates.lat.toFixed(4)}, {building.coordinates.lng.toFixed(4)}
-          </Text>
-        </View>
-
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.directionsButton} onPress={handleGetDirections}>
-          <Text style={styles.directionsButtonText}>Get Directions</Text>
+      {/* Floating Action Button */}
+      <Animated.View entering={SlideInRight.delay(500)} style={styles.fabContainer}>
+        <TouchableOpacity style={styles.fab} onPress={handleGetDirections}>
+          <Navigation size={24} color="#FFFFFF" />
         </TouchableOpacity>
-      </View>
+      </Animated.View>
     </View>
   );
 }
@@ -208,17 +286,29 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.lg,
     color: COLORS.textSecondary,
   },
+  
+  // Hero Section with Modern Design
+  heroGradient: {
+    backgroundColor: COLORS.primary,
+    paddingBottom: SPACING.xl,
+  },
   hero: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     padding: SPACING.lg,
-    backgroundColor: COLORS.card,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    paddingTop: SPACING.xl,
+  },
+  emojiCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: SPACING.lg,
   },
   emoji: {
-    fontSize: 56,
-    marginRight: SPACING.lg,
+    fontSize: 44,
   },
   heroContent: {
     flex: 1,
@@ -226,23 +316,39 @@ const styles = StyleSheet.create({
   name: {
     fontSize: FONT_SIZE['2xl'],
     fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: SPACING.sm,
+    color: '#FFFFFF',
+    marginBottom: SPACING.md,
+    lineHeight: 32,
   },
-  statusRow: {
+  metaRow: {
     flexDirection: 'row',
     gap: SPACING.sm,
+    flexWrap: 'wrap',
   },
-  statusPill: {
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
+    paddingVertical: 6,
     borderRadius: BORDER_RADIUS.full,
   },
-  statusPillOpen: {
-    backgroundColor: '#DCFCE7',
+  statusBadgeOpen: {
+    backgroundColor: 'rgba(220, 252, 231, 0.95)',
   },
-  statusPillClosed: {
-    backgroundColor: '#FEE2E2',
+  statusBadgeClosed: {
+    backgroundColor: 'rgba(254, 226, 226, 0.95)',
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statusDotOpen: {
+    backgroundColor: '#16A34A',
+  },
+  statusDotClosed: {
+    backgroundColor: '#DC2626',
   },
   statusText: {
     fontSize: FONT_SIZE.sm,
@@ -254,29 +360,77 @@ const styles = StyleSheet.create({
   statusTextClosed: {
     color: '#991B1B',
   },
-  categoryPill: {
+  categoryBadge: {
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
+    paddingVertical: 6,
     borderRadius: BORDER_RADIUS.full,
-    backgroundColor: COLORS.surface,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
   },
   categoryText: {
     fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
-    fontWeight: '500',
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
-  section: {
+
+  // Quick Actions
+  quickActions: {
+    flexDirection: 'row',
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    gap: SPACING.md,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    backgroundColor: COLORS.card,
+    paddingVertical: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  actionButtonText: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+
+  // Card Style
+  card: {
+    backgroundColor: COLORS.card,
+    marginHorizontal: SPACING.lg,
+    marginTop: SPACING.lg,
     padding: SPACING.lg,
+    borderRadius: BORDER_RADIUS.xl,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  sectionHeader: {
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.md,
+  },
+  cardTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
-    marginBottom: SPACING.md,
   },
-  sectionTitle: {
+  cardTitle: {
     fontSize: FONT_SIZE.lg,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.textPrimary,
   },
   description: {
@@ -284,94 +438,119 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     lineHeight: 24,
   },
-  servicesList: {
+
+  // Services Grid
+  servicesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: SPACING.sm,
   },
-  serviceItem: {
+  serviceChip: {
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  serviceChipText: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textPrimary,
+    fontWeight: '500',
+  },
+  moreText: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.primary,
+    fontWeight: '600',
+    marginTop: SPACING.sm,
+    textAlign: 'center',
+  },
+
+  // Hours Display
+  todayHours: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: SPACING.md,
+    backgroundColor: COLORS.surface,
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
   },
-  serviceDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.primary,
-  },
-  serviceText: {
+  todayLabel: {
     fontSize: FONT_SIZE.base,
+    fontWeight: '600',
     color: COLORS.textPrimary,
   },
+  todayTime: {
+    fontSize: FONT_SIZE.base,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+
+  // Events
   eventsList: {
     gap: SPACING.md,
+    marginTop: SPACING.md,
   },
   eventCard: {
-    backgroundColor: COLORS.card,
+    backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.lg,
+    padding: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
   eventCardWarning: {
     backgroundColor: '#FEF3C7',
     borderColor: COLORS.warning,
+    borderWidth: 2,
   },
   eventHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.xs,
   },
   eventTitle: {
     fontSize: FONT_SIZE.base,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.textPrimary,
     flex: 1,
+    marginRight: SPACING.sm,
   },
   eventRoom: {
     fontSize: FONT_SIZE.sm,
     color: COLORS.textSecondary,
+    fontWeight: '500',
     marginBottom: SPACING.sm,
   },
-  eventDescription: {
-    fontSize: FONT_SIZE.base,
-    color: COLORS.textSecondary,
-    lineHeight: 20,
-    marginBottom: SPACING.sm,
+  eventWarning: {
+    backgroundColor: 'rgba(146, 64, 14, 0.1)',
+    padding: SPACING.sm,
+    borderRadius: BORDER_RADIUS.md,
+    marginTop: SPACING.sm,
   },
   eventNote: {
     fontSize: FONT_SIZE.sm,
     color: '#92400E',
-    fontStyle: 'italic',
+    fontWeight: '500',
   },
-  locationSection: {
-    padding: SPACING.lg,
-  },
-  coordsText: {
-    fontSize: FONT_SIZE.base,
-    color: COLORS.textSecondary,
-    fontFamily: 'monospace',
-  },
-  footer: {
+
+  // Floating Action Button
+  fabContainer: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: SPACING.lg,
-    paddingBottom: 24,
-    backgroundColor: COLORS.card,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    bottom: SPACING.xl,
+    right: SPACING.lg,
   },
-  directionsButton: {
+  fab: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: COLORS.primary,
-    paddingVertical: SPACING.lg,
-    borderRadius: BORDER_RADIUS.lg,
+    justifyContent: 'center',
     alignItems: 'center',
-  },
-  directionsButtonText: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });

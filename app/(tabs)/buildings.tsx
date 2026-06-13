@@ -111,37 +111,45 @@ export default function BuildingsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Buildings</Text>
-        <Text style={styles.headerSubtitle}>{buildings.length} locations on campus</Text>
-      </View>
-
-      <View style={styles.searchContainer}>
-        <View style={styles.searchInput}>
-          <Search size={18} color={COLORS.textMuted} />
-          <TextInput
-            style={styles.searchTextInput}
-            placeholder="Search buildings, services..."
-            placeholderTextColor={COLORS.textMuted}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.trim() && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <X size={18} color={COLORS.textMuted} />
-            </TouchableOpacity>
-          )}
+      {/* Modern Header with Gradient */}
+      <Animated.View entering={FadeInDown} style={styles.headerGradient}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>🏛️ Campus Buildings</Text>
+          <Text style={styles.headerSubtitle}>{buildings.length} locations</Text>
         </View>
-      </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoriesContainer}
-      >
-        {CATEGORIES.map(renderCategoryChip)}
-      </ScrollView>
+        {/* Integrated Search */}
+        <View style={styles.searchContainer}>
+          <View style={styles.searchInput}>
+            <Search size={20} color={COLORS.primary} strokeWidth={2.5} />
+            <TextInput
+              style={styles.searchTextInput}
+              placeholder="Search buildings, services..."
+              placeholderTextColor={COLORS.textMuted}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.trim() && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <X size={20} color={COLORS.textMuted} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </Animated.View>
 
+      {/* Horizontal Category Filter */}
+      <Animated.View entering={FadeInDown.delay(100)}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoriesContainer}
+        >
+          {CATEGORIES.map(renderCategoryChip)}
+        </ScrollView>
+      </Animated.View>
+
+      {/* Buildings List */}
       <FlatList
         data={buildings}
         renderItem={renderBuilding}
@@ -160,52 +168,66 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.surface,
   },
+  
+  // Modern Header with Gradient Effect
+  headerGradient: {
+    backgroundColor: COLORS.primary,
+    paddingBottom: SPACING.lg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
   header: {
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.lg,
     paddingBottom: SPACING.md,
-    backgroundColor: COLORS.card,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
   },
   headerTitle: {
-    fontSize: FONT_SIZE['2xl'],
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: 2,
+    fontSize: FONT_SIZE['3xl'],
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 4,
+    letterSpacing: -0.5,
   },
   headerSubtitle: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
+    fontSize: FONT_SIZE.base,
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontWeight: '500',
   },
+  
+  // Enhanced Search
   searchContainer: {
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    backgroundColor: COLORS.card,
+    paddingTop: SPACING.md,
   },
   searchInput: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    backgroundColor: '#FFFFFF',
+    borderRadius: BORDER_RADIUS.xl,
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.sm,
+    paddingVertical: SPACING.md,
     gap: SPACING.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
   },
   searchTextInput: {
     flex: 1,
     fontSize: FONT_SIZE.base,
     color: COLORS.textPrimary,
-    paddingVertical: SPACING.xs,
+    paddingVertical: 4,
+    fontWeight: '500',
   },
+  
+  // Category Chips
   categoriesContainer: {
     paddingHorizontal: SPACING.lg,
-    paddingBottom: SPACING.md,
-    backgroundColor: COLORS.card,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    paddingVertical: SPACING.lg,
     gap: SPACING.sm,
   },
   categoryChip: {
@@ -215,47 +237,64 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.lg,
     borderRadius: BORDER_RADIUS.full,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
+    backgroundColor: COLORS.card,
+    borderWidth: 2,
     borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   categoryChipActive: {
     backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
   },
   categoryEmoji: {
-    fontSize: 14,
+    fontSize: 16,
   },
   categoryText: {
     fontSize: FONT_SIZE.sm,
     color: COLORS.textSecondary,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   categoryTextActive: {
     color: '#FFFFFF',
+    fontWeight: '700',
   },
+  
+  // List
   list: {
     flex: 1,
   },
   listContent: {
     padding: SPACING.lg,
+    gap: SPACING.md,
   },
+  
+  // Empty State
   emptyState: {
     alignItems: 'center',
     paddingVertical: SPACING['3xl'],
   },
   emptyEmoji: {
-    fontSize: 48,
+    fontSize: 64,
     marginBottom: SPACING.lg,
   },
   emptyTitle: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '600',
+    fontSize: FONT_SIZE.xl,
+    fontWeight: '700',
     color: COLORS.textPrimary,
     marginBottom: SPACING.sm,
   },
   emptyText: {
-    fontSize: FONT_SIZE.sm,
+    fontSize: FONT_SIZE.base,
     color: COLORS.textSecondary,
+    textAlign: 'center',
   },
 });
